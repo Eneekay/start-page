@@ -30,6 +30,29 @@
   tickClock();
   setInterval(tickClock, 1000);
 
+  /* ---------- science fact ---------- */
+
+  var factEl = document.getElementById('fact');
+  var factRefreshBtn = document.getElementById('factRefresh');
+  var FACTS = window.SCIENCE_FACTS || [];
+  var lastFactIndex = -1;
+
+  function showRandomFact() {
+    if (!FACTS.length || !factEl) return;
+    var index = Math.floor(Math.random() * FACTS.length);
+    if (FACTS.length > 1 && index === lastFactIndex) {
+      index = (index + 1) % FACTS.length;
+    }
+    lastFactIndex = index;
+    factEl.textContent = FACTS[index];
+  }
+
+  showRandomFact();
+
+  if (factRefreshBtn) {
+    factRefreshBtn.addEventListener('click', showRandomFact);
+  }
+
   /* ---------- blob parallax ---------- */
 
   var blobs = Array.prototype.slice.call(document.querySelectorAll('.blob'));
