@@ -1,0 +1,203 @@
+/* Start page — theme reused from nekarantanis.co.uk */
+
+:root {
+  --nk-c0: #10141F;
+  --nk-c1: #6FC2FF;
+  --nk-c2: #2653D9;
+  --nk-c3: #E4DFD3;
+  --nk-c4: #F7F6F1;
+  --nk-gold: #FF7A33;
+  --nk-cream: #c9c2b6;
+  --nk-cream-strong: #e8e4da;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, #1b2748 0%, var(--nk-c0) 55%);
+  color: var(--nk-c4);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ---------- background layers ---------- */
+
+#network-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+
+.dot-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.6;
+}
+
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.blob-1 {
+  width: 560px;
+  height: 560px;
+  top: -140px;
+  left: -140px;
+  background: var(--nk-c2);
+  opacity: 0.35;
+}
+
+.blob-2 {
+  width: 620px;
+  height: 620px;
+  bottom: -180px;
+  right: -140px;
+  background: var(--nk-gold);
+  opacity: 0.16;
+}
+
+.blob-3 {
+  width: 440px;
+  height: 440px;
+  top: 38%;
+  right: 12%;
+  background: var(--nk-c1);
+  opacity: 0.14;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob { transition: none !important; }
+}
+
+/* ---------- layout ---------- */
+
+.start-wrap {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4rem;
+  padding: 9vh 1.5rem 6vh;
+}
+
+/* ---------- frosted glass ---------- */
+
+.glass {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* ---------- clock ---------- */
+
+.clock-card {
+  text-align: center;
+  padding: clamp(1.75rem, 4vw, 3rem) clamp(2rem, 6vw, 4rem);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.clock {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: clamp(3.2rem, 9vw, 6.5rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-c4);
+  text-shadow: 0 0 46px rgba(111, 194, 255, 0.28);
+}
+
+.date {
+  margin-top: 0.85rem;
+  font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--nk-cream);
+}
+
+/* ---------- tool tiles ---------- */
+
+.tools-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem 1.75rem;
+  max-width: 760px;
+}
+
+.tool-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 84px;
+  text-decoration: none;
+  color: var(--nk-cream-strong);
+}
+
+.tool-tile-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nk-c1);
+  transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.tool-tile-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.tool-tile-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.tool-tile:hover .tool-tile-icon,
+.tool-tile:focus-visible .tool-tile-icon {
+  transform: translateY(-5px) scale(1.06);
+  background-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(111, 194, 255, 0.4);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(111, 194, 255, 0.25);
+}
+
+.tool-tile:focus-visible {
+  outline: 2px solid var(--nk-c1);
+  outline-offset: 4px;
+  border-radius: 18px;
+}
+
+@media (max-width: 420px) {
+  .tools-row { gap: 1.1rem 1.2rem; }
+  .tool-tile { width: 72px; }
+  .tool-tile-icon { width: 52px; height: 52px; border-radius: 16px; }
+}
