@@ -123,18 +123,12 @@
     renderNameForm();
   }
 
-  /* ---------- science + animal facts (with sci-fi decode refresh) ---------- */
+  /* ---------- science + animal facts (independent sections, sci-fi decode refresh) ---------- */
 
-  var factEl = document.getElementById('fact');
-  var factEyebrowEl = document.getElementById('factEyebrow');
-  var factRefreshBtn = document.getElementById('factRefresh');
-  var FACTS = (window.SCIENCE_FACTS || []).map(function (t) { return { text: t, category: 'Science Fact' }; })
-    .concat((window.ANIMAL_FACTS || []).map(function (t) { return { text: t, category: 'Animal Fact' }; }));
-  var lastFactIndex = -1;
   var SCRAMBLE_CHARS = '!<>-_\\/[]{}=+*^?#$%&01';
 
-  function scrambleFactText(target) {
-    factEl.classList.add('is-decoding');
+  function scrambleTextInto(el, target) {
+    el.classList.add('is-decoding');
     var duration = 550;
     var start = null;
     function frame(ts) {
@@ -149,44 +143,53 @@
           out += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
         }
       }
-      factEl.textContent = out;
+      el.textContent = out;
       if (progress < 1) {
         requestAnimationFrame(frame);
       } else {
-        factEl.textContent = target;
-        factEl.classList.remove('is-decoding');
+        el.textContent = target;
+        el.classList.remove('is-decoding');
       }
     }
     requestAnimationFrame(frame);
   }
 
-  function showRandomFact(animate) {
-    if (!FACTS.length || !factEl) return;
-    var index = Math.floor(Math.random() * FACTS.length);
-    if (FACTS.length > 1 && index === lastFactIndex) {
-      index = (index + 1) % FACTS.length;
-    }
-    lastFactIndex = index;
-    var entry = FACTS[index];
-    if (factEyebrowEl) factEyebrowEl.textContent = entry.category;
-    if (animate && !reduceMotion) {
-      scrambleFactText(entry.text);
-    } else {
-      factEl.textContent = entry.text;
-    }
-  }
+  function initFactSection(getList, textElId, refreshBtnId) {
+    var textEl = document.getElementById(textElId);
+    var refreshBtn = document.getElementById(refreshBtnId);
+    var lastIndex = -1;
 
-  showRandomFact(false);
-
-  if (factRefreshBtn) {
-    factRefreshBtn.addEventListener('click', function () {
-      if (!reduceMotion) {
-        factRefreshBtn.classList.add('is-spinning');
-        setTimeout(function () { factRefreshBtn.classList.remove('is-spinning'); }, 650);
+    function showRandom(animate) {
+      var list = getList();
+      if (!list.length || !textEl) return;
+      var index = Math.floor(Math.random() * list.length);
+      if (list.length > 1 && index === lastIndex) {
+        index = (index + 1) % list.length;
       }
-      showRandomFact(true);
-    });
+      lastIndex = index;
+      var target = list[index];
+      if (animate && !reduceMotion) {
+        scrambleTextInto(textEl, target);
+      } else {
+        textEl.textContent = target;
+      }
+    }
+
+    showRandom(false);
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', function () {
+        if (!reduceMotion) {
+          refreshBtn.classList.add('is-spinning');
+          setTimeout(function () { refreshBtn.classList.remove('is-spinning'); }, 650);
+        }
+        showRandom(true);
+      });
+    }
   }
+
+  initFactSection(function () { return window.SCIENCE_FACTS || []; }, 'scienceFactText', 'scienceFactRefresh');
+  initFactSection(function () { return window.ANIMAL_FACTS || []; }, 'animalFactText', 'animalFactRefresh');
 
   /* ---------- calendar + Greek nameday ---------- */
 
@@ -471,62 +474,88 @@
     }
   })();
 
-  /* ---------- puzzle: guess the number ---------- */
+  /* ---------- puzzle: sliding tile (8-puzzle) ---------- */
 
   (function () {
     var puzzleWidget = document.getElementById('puzzleWidget');
     if (!puzzleWidget) return;
-    var PUZZLE_MAX = 50;
-    var target = Math.floor(Math.random() * PUZZLE_MAX) + 1;
-    var guesses = 0;
-    var solved = false;
 
-    function render(message, messageType) {
+    var board = [];
+    var moves = 0;
+
+    function neighborsOf(idx) {
+      var row = Math.floor(idx / 3), col = idx % 3;
+      var result = [];
+      if (row > 0) result.push(idx - 3);
+      if (row < 2) result.push(idx + 3);
+      if (col > 0) result.push(idx - 1);
+      if (col < 2) result.push(idx + 1);
+      return result;
+    }
+
+    function isSolved(b) {
+      for (var i = 0; i < 8; i++) { if (b[i] !== i + 1) return false; }
+      return b[8] === 0;
+    }
+
+    function shuffledBoard() {
+      var b = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+      var blank = 8;
+      var last = -1;
+      for (var i = 0; i < 120; i++) {
+        var options = neighborsOf(blank).filter(function (n) { return n !== last; });
+        if (!options.length) options = neighborsOf(blank);
+        var pick = options[Math.floor(Math.random() * options.length)];
+        b[blank] = b[pick];
+        b[pick] = 0;
+        last = blank;
+        blank = pick;
+      }
+      return b;
+    }
+
+    function render() {
+      var solved = isSolved(board);
+      var tilesHtml = board.map(function (v, i) {
+        if (v === 0) return '<div class="slide-tile slide-tile--blank"></div>';
+        return '<button type="button" class="slide-tile" data-idx="' + i + '">' + v + '</button>';
+      }).join('');
+
       puzzleWidget.innerHTML =
-        '<span class="widget-eyebrow">Puzzle — Guess the Number</span>' +
-        '<div class="puzzle-body">' +
-          '<p class="puzzle-prompt">I’m thinking of a number between 1 and ' + PUZZLE_MAX + '.</p>' +
-          (solved
-            ? '<div class="puzzle-feedback puzzle-feedback--win">🎉 Correct — ' + target + ' in ' + guesses + (guesses === 1 ? ' guess!' : ' guesses!') + '</div>'
-            : '<form class="puzzle-form" id="puzzleForm" autocomplete="off">' +
-                '<input type="number" class="name-input" id="puzzleInput" min="1" max="' + PUZZLE_MAX + '" placeholder="Your guess" required>' +
-                '<button type="submit" class="name-submit">Guess</button>' +
-              '</form>' +
-              (message ? '<div class="puzzle-feedback' + (messageType ? ' puzzle-feedback--' + messageType : '') + '">' + escapeHtml(message) + '</div>' : '') +
-              '<div class="puzzle-count">' + (guesses ? guesses + (guesses === 1 ? ' guess so far' : ' guesses so far') : '') + '</div>'
-          ) +
-          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new number</button>' +
-        '</div>';
+        '<span class="widget-eyebrow">Puzzle — Slide to Solve</span>' +
+        '<div class="slide-grid" id="slideGrid">' + tilesHtml + '</div>' +
+        '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
+          (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
+        '</div>' +
+        '<button type="button" class="countdown-change-link" id="puzzleShuffleBtn">shuffle again</button>';
 
-      var form = document.getElementById('puzzleForm');
-      if (form) {
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          var input = document.getElementById('puzzleInput');
-          var guess = parseInt(input.value, 10);
-          if (isNaN(guess)) return;
-          guesses++;
-          if (guess === target) {
-            solved = true;
-            render();
-          } else if (guess < target) {
-            render('Higher! ⬆️', 'hint');
-          } else {
-            render('Lower! ⬇️', 'hint');
-          }
+      if (!solved) {
+        var tiles = puzzleWidget.querySelectorAll('.slide-tile[data-idx]');
+        tiles.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var idx = parseInt(btn.getAttribute('data-idx'), 10);
+            var blank = board.indexOf(0);
+            if (neighborsOf(blank).indexOf(idx) !== -1) {
+              board[blank] = board[idx];
+              board[idx] = 0;
+              moves++;
+              render();
+            }
+          });
         });
       }
-      var resetBtn = document.getElementById('puzzleResetBtn');
-      if (resetBtn) {
-        resetBtn.addEventListener('click', function () {
-          target = Math.floor(Math.random() * PUZZLE_MAX) + 1;
-          guesses = 0;
-          solved = false;
+
+      var shuffleBtn = document.getElementById('puzzleShuffleBtn');
+      if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', function () {
+          board = shuffledBoard();
+          moves = 0;
           render();
         });
       }
     }
 
+    board = shuffledBoard();
     render();
   })();
 

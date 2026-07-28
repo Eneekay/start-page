@@ -74,7 +74,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
-/* ---------- dashboard grid ---------- */
+/* ---------- dashboard layout ----------
+   Each column sizes its own widgets to their content (flex: 0 0 auto);
+   one designated "filler" widget per column (flex: 1 1 auto) absorbs
+   whatever height is left over, so every column still ends up the same
+   total height without forcing unrelated widgets into equal bands. */
 
 .dashboard {
   position: relative;
@@ -84,22 +88,38 @@ body {
   max-width: 1680px;
   margin: 0 auto;
   padding: clamp(0.75rem, 1.6vw, 1.5rem);
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 1fr);
-  grid-template-rows: 1.2fr 0.9fr 0.9fr auto;
-  grid-template-areas:
-    "clockgreet fact      calendar"
-    "weather    onthisday bankholiday"
-    "weather    puzzle    countdown"
-    "tools      tools     tools";
+  display: flex;
+  flex-direction: column;
   gap: clamp(0.6rem, 1.2vw, 1rem);
 }
+
+.dash-columns {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+}
+
+.dash-col {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+}
+
+.dash-col:nth-child(1) { flex-basis: 1.05fr; }
+.dash-col:nth-child(2) { flex-basis: 0.95fr; }
+.dash-col:nth-child(3) { flex-basis: 1fr; }
 
 .widget {
   border-radius: 22px;
   padding: clamp(0.7rem, 1.4vw, 1.3rem);
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   overflow: hidden;
   min-height: 0;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -117,26 +137,29 @@ body {
   .widget:hover { transform: none; }
 }
 
-.clockgreeting-widget { grid-area: clockgreet; align-items: center; justify-content: center; text-align: center; }
-.weather-widget { grid-area: weather; align-items: center; text-align: center; }
-.bankholiday-widget { grid-area: bankholiday; align-items: center; justify-content: center; text-align: center; }
-.fact-widget { grid-area: fact; justify-content: flex-start; text-align: center; }
-.calendar-widget { grid-area: calendar; justify-content: flex-start; }
-.onthisday-widget { grid-area: onthisday; justify-content: flex-start; text-align: center; }
-.puzzle-widget { grid-area: puzzle; justify-content: flex-start; text-align: center; }
-.countdown-widget { grid-area: countdown; align-items: center; justify-content: center; text-align: center; }
-.tools-dock { grid-area: tools; flex-direction: row; align-items: center; justify-content: space-evenly; }
+/* filler widgets: one per column, absorbs leftover height so columns match */
+.weather-widget,
+.puzzle-widget,
+.countdown-widget {
+  flex: 1 1 auto;
+}
+
+.clockgreeting-widget { align-items: center; justify-content: center; text-align: center; }
+.weather-widget { align-items: center; justify-content: center; text-align: center; }
+.bankholiday-widget { align-items: center; justify-content: center; text-align: center; }
+.fact-widget { justify-content: center; text-align: center; }
+.calendar-widget { justify-content: flex-start; }
+.onthisday-widget { justify-content: center; text-align: center; }
+.puzzle-widget { align-items: center; justify-content: center; text-align: center; }
+.countdown-widget { align-items: center; justify-content: center; text-align: center; }
+.tools-dock { flex-direction: row; align-items: center; justify-content: space-evenly; flex: 0 0 auto; }
 
 /* small-screen / short-viewport fallback: stack and allow scrolling */
 @media (max-width: 1100px), (max-height: 820px) {
   html, body { height: auto; overflow: auto; }
-  .dashboard {
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    grid-template-areas: none;
-    padding: 1.25rem 1rem 2rem;
-  }
+  .dashboard { height: auto; }
+  .dash-columns { flex-direction: column; }
+  .dash-col { flex-basis: auto; }
   .widget { width: 100%; }
   .tools-dock { flex-wrap: wrap; row-gap: 1.1rem; padding: 1.1rem; }
 }
@@ -292,16 +315,33 @@ body {
 
 /* ---------- science / animal fact ---------- */
 
+.fact-section { width: 100%; }
+
+.fact-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fact-section-header .widget-eyebrow { margin-bottom: 0; text-align: left; }
+
+.fact-section-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.6rem 0;
+}
+
 .fact-text {
-  margin: 0.35rem 0 0;
-  font-size: clamp(0.7rem, 1.05vw, 0.88rem);
-  line-height: 1.55;
+  margin: 0.3rem 0 0;
+  font-size: clamp(0.68rem, 1vw, 0.82rem);
+  line-height: 1.5;
   color: var(--nk-cream-strong);
-  max-width: 40ch;
-  margin-inline: auto;
+  text-align: left;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 8;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
 }
 
@@ -320,8 +360,9 @@ body {
 }
 
 .fact-refresh {
-  margin: 0.75rem auto 0;
-  width: 26px;
+  margin: 0;
+  flex-shrink: 0;
+  width: 24px;
   height: 26px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -698,27 +739,50 @@ body {
   font-weight: 600;
 }
 
-/* ---------- puzzle ---------- */
+/* ---------- puzzle: sliding tile ---------- */
 
-.puzzle-body { width: 100%; display: flex; flex-direction: column; align-items: center; }
-
-.puzzle-prompt {
-  margin: 0 0 0.5rem;
-  font-size: clamp(0.7rem, 1.05vw, 0.85rem);
-  color: var(--nk-cream-strong);
-  line-height: 1.4;
+.slide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(4px, 0.8vw, 7px);
+  width: min(100%, 165px);
+  margin: 0 auto;
 }
 
-.puzzle-form input[type="number"] { max-width: 130px; }
+.slide-tile {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--nk-c4);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
 
-.puzzle-feedback {
-  margin-top: 0.5rem;
-  font-size: 0.78rem;
+.slide-tile:hover { background: rgba(255, 255, 255, 0.16); }
+.slide-tile:active { transform: scale(0.94); }
+
+.slide-tile--blank {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
+.puzzle-count {
+  margin-top: 0.55rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  color: var(--nk-c1);
+  color: var(--nk-cream);
 }
 
-.puzzle-feedback--hint { color: var(--nk-gold); }
+.puzzle-count--solved { color: var(--nk-c1); }
 .puzzle-feedback--win { font-size: 0.85rem; color: var(--nk-c1); }
 
 .puzzle-count {

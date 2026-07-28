@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="css/bootstrap.min.css" rel="stylesheet">
-<link href="css/style.css" rel="stylesheet">
+<link href="css/style.css?v=5" rel="stylesheet">
 </head>
 <body>
 
@@ -21,66 +21,95 @@
 
 <div class="dashboard" id="dashboard">
 
-  <section class="widget clockgreeting-widget glass">
-    <div class="greeting-slot" id="greetingWidget" aria-live="polite"></div>
-    <div class="clock" id="clock">00:00:00</div>
-    <div class="date" id="date">&nbsp;</div>
-  </section>
+  <div class="dash-columns">
 
-  <section class="widget fact-widget glass">
-    <span class="widget-eyebrow" id="factEyebrow">Did you know?</span>
-    <p class="fact-text" id="fact">&nbsp;</p>
-    <button type="button" class="fact-refresh" id="factRefresh" aria-label="Show another fact">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 0 1 15.3-6.3L21 8"></path>
-        <path d="M21 3v5h-5"></path>
-        <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16"></path>
-        <path d="M3 21v-5h5"></path>
-      </svg>
-    </button>
-  </section>
+    <div class="dash-col">
+      <section class="widget clockgreeting-widget glass">
+        <div class="greeting-slot" id="greetingWidget" aria-live="polite"></div>
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="date" id="date">&nbsp;</div>
+      </section>
 
-  <section class="widget calendar-widget glass">
-    <span class="widget-eyebrow">Calendar</span>
-    <div class="calendar-nav">
-      <button type="button" class="calendar-nav-btn" id="calPrevBtn" aria-label="Previous month">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-      </button>
-      <span class="calendar-month-label" id="calMonthLabel">&nbsp;</span>
-      <button type="button" class="calendar-nav-btn" id="calNextBtn" aria-label="Next month">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </button>
+      <section class="widget weather-widget glass">
+        <span class="widget-eyebrow">Weather</span>
+        <div class="weather-body" id="weatherBody">
+          <div class="widget-status">Locating…</div>
+        </div>
+      </section>
     </div>
-    <div class="calendar-weekdays" id="calWeekdays"></div>
-    <div class="calendar-grid" id="calGrid"></div>
-    <div class="calendar-nameday" id="calNameday">
-      <span class="cal-date-label" id="calDateLabel">Today</span>
-      <span id="calNamedayNames">—</span>
+
+    <div class="dash-col">
+      <section class="widget fact-widget glass">
+        <div class="fact-section">
+          <div class="fact-section-header">
+            <span class="widget-eyebrow">Science Fact</span>
+            <button type="button" class="fact-refresh" id="scienceFactRefresh" aria-label="Show another science fact">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 15.3-6.3L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16"></path>
+                <path d="M3 21v-5h5"></path>
+              </svg>
+            </button>
+          </div>
+          <p class="fact-text" id="scienceFactText">&nbsp;</p>
+        </div>
+        <div class="fact-section-divider"></div>
+        <div class="fact-section">
+          <div class="fact-section-header">
+            <span class="widget-eyebrow">Animal Fact</span>
+            <button type="button" class="fact-refresh" id="animalFactRefresh" aria-label="Show another animal fact">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 15.3-6.3L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16"></path>
+                <path d="M3 21v-5h5"></path>
+              </svg>
+            </button>
+          </div>
+          <p class="fact-text" id="animalFactText">&nbsp;</p>
+        </div>
+      </section>
+
+      <section class="widget onthisday-widget glass" id="onThisDayWidget"></section>
+
+      <section class="widget puzzle-widget glass" id="puzzleWidget"></section>
     </div>
-  </section>
 
-  <section class="widget weather-widget glass">
-    <span class="widget-eyebrow">Weather</span>
-    <div class="weather-body" id="weatherBody">
-      <div class="widget-status">Locating…</div>
+    <div class="dash-col">
+      <section class="widget calendar-widget glass">
+        <span class="widget-eyebrow">Calendar</span>
+        <div class="calendar-nav">
+          <button type="button" class="calendar-nav-btn" id="calPrevBtn" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="calendar-month-label" id="calMonthLabel">&nbsp;</span>
+          <button type="button" class="calendar-nav-btn" id="calNextBtn" aria-label="Next month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+        <div class="calendar-weekdays" id="calWeekdays"></div>
+        <div class="calendar-grid" id="calGrid"></div>
+        <div class="calendar-nameday" id="calNameday">
+          <span class="cal-date-label" id="calDateLabel">Today</span>
+          <span id="calNamedayNames">—</span>
+        </div>
+      </section>
+
+      <section class="widget bankholiday-widget glass">
+        <span class="widget-eyebrow">Next UK Bank Holiday</span>
+        <div class="bankholiday-name" id="bankHolidayName">—</div>
+        <div class="bankholiday-date" id="bankHolidayDate">&nbsp;</div>
+        <div class="bankholiday-countdown" id="bankHolidayCountdown">&nbsp;</div>
+      </section>
+
+      <section class="widget countdown-widget glass">
+        <span class="widget-eyebrow">Next Event</span>
+        <div id="countdownBody"></div>
+      </section>
     </div>
-  </section>
 
-  <section class="widget onthisday-widget glass" id="onThisDayWidget"></section>
-
-  <section class="widget bankholiday-widget glass">
-    <span class="widget-eyebrow">Next UK Bank Holiday</span>
-    <div class="bankholiday-name" id="bankHolidayName">—</div>
-    <div class="bankholiday-date" id="bankHolidayDate">&nbsp;</div>
-    <div class="bankholiday-countdown" id="bankHolidayCountdown">&nbsp;</div>
-  </section>
-
-  <section class="widget puzzle-widget glass" id="puzzleWidget"></section>
-
-  <section class="widget countdown-widget glass">
-    <span class="widget-eyebrow">Next Event</span>
-    <div id="countdownBody"></div>
-  </section>
+  </div>
 
   <nav class="widget tools-dock glass" aria-label="Quick links">
 
@@ -156,11 +185,11 @@
 </div>
 
 <script src="js/bootstrap.bundle.min.js"></script>
-<script src="js/facts.js"></script>
-<script src="js/animal-facts.js"></script>
-<script src="js/languages.js"></script>
-<script src="js/namedays.js"></script>
-<script src="js/onthisday.js"></script>
-<script src="js/app.js"></script>
+<script src="js/facts.js?v=5"></script>
+<script src="js/animal-facts.js?v=5"></script>
+<script src="js/languages.js?v=5"></script>
+<script src="js/namedays.js?v=5"></script>
+<script src="js/onthisday.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>
