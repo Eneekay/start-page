@@ -549,106 +549,395 @@
     var puzzleWidget = document.getElementById('puzzleWidget');
     if (!puzzleWidget) return;
 
-    var MEMORY_ICONS = {
-      star: '<polygon points="12 2 14.9 8.6 22 9.3 16.5 14 18.2 21 12 17.3 5.8 21 7.5 14 2 9.3 9.1 8.6"></polygon>',
-      heart: '<path d="M12 21s-7-4.35-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.65-9.5 9-9.5 9z"></path>',
-      moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
-      sun: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"></path>',
-      bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
-      diamond: '<polygon points="12 2 22 12 12 22 2 12"></polygon>'
-    };
-    var ICON_KEYS = Object.keys(MEMORY_ICONS);
-
-    var board = [];
-    var flipped = [];
-    var matched = {};
-    var moves = 0;
-    var locked = false;
-
-    function iconSvg(key) {
-      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + MEMORY_ICONS[key] + '</svg>';
-    }
-
-    function shuffledBoard() {
-      var deck = ICON_KEYS.concat(ICON_KEYS);
-      for (var i = deck.length - 1; i > 0; i--) {
+    function fisherShuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
-        var tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+        var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
       }
-      return deck;
+      return a;
     }
 
-    function isSolved() {
-      return Object.keys(matched).length === board.length;
-    }
+    /* ---- Memory Match ---- */
+    function initMemoryPuzzle() {
+      var MEMORY_ICONS = {
+        star: '<polygon points="12 2 14.9 8.6 22 9.3 16.5 14 18.2 21 12 17.3 5.8 21 7.5 14 2 9.3 9.1 8.6"></polygon>',
+        heart: '<path d="M12 21s-7-4.35-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.65-9.5 9-9.5 9z"></path>',
+        moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
+        sun: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"></path>',
+        bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+        diamond: '<polygon points="12 2 22 12 12 22 2 12"></polygon>'
+      };
+      var ICON_KEYS = Object.keys(MEMORY_ICONS);
+      var board = [], flipped = [], matched = {}, moves = 0, locked = false;
 
-    function render() {
-      var solved = isSolved();
-      var cardsHtml = board.map(function (key, i) {
-        var faceUp = matched[i] || flipped.indexOf(i) !== -1;
-        var classes = 'memory-card' + (matched[i] ? ' is-matched' : '');
-        return '<button type="button" class="' + classes + '" data-idx="' + i + '">' +
-          (faceUp ? iconSvg(key) : '<span class="memory-card-back"></span>') +
-        '</button>';
-      }).join('');
+      function iconSvg(key) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + MEMORY_ICONS[key] + '</svg>';
+      }
+      function shuffledBoard() { return fisherShuffle(ICON_KEYS.concat(ICON_KEYS)); }
+      function isSolved() { return Object.keys(matched).length === board.length; }
 
-      puzzleWidget.innerHTML =
-        '<span class="widget-eyebrow">Puzzle — Memory Match</span>' +
-        '<div class="memory-grid" id="memoryGrid">' + cardsHtml + '</div>' +
-        '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
-          (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
-        '</div>' +
-        '<button type="button" class="countdown-change-link" id="puzzleShuffleBtn">shuffle again</button>';
+      function render() {
+        var solved = isSolved();
+        var cardsHtml = board.map(function (key, i) {
+          var faceUp = matched[i] || flipped.indexOf(i) !== -1;
+          var classes = 'memory-card' + (matched[i] ? ' is-matched' : '');
+          return '<button type="button" class="' + classes + '" data-idx="' + i + '">' +
+            (faceUp ? iconSvg(key) : '<span class="memory-card-back"></span>') +
+          '</button>';
+        }).join('');
 
-      if (!solved) {
-        var cards = puzzleWidget.querySelectorAll('.memory-card');
-        cards.forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            if (locked) return;
-            var idx = parseInt(btn.getAttribute('data-idx'), 10);
-            if (matched[idx] || flipped.indexOf(idx) !== -1) return;
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Memory Match</span>' +
+          '<div class="memory-grid">' + cardsHtml + '</div>' +
+          '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
+            (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
+          '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">shuffle again</button>';
 
-            flipped.push(idx);
-            if (flipped.length < 2) {
+        if (!solved) {
+          puzzleWidget.querySelectorAll('.memory-card').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              if (locked) return;
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              if (matched[idx] || flipped.indexOf(idx) !== -1) return;
+              flipped.push(idx);
+              if (flipped.length < 2) { render(); return; }
+              moves++;
               render();
-              return;
-            }
-
-            moves++;
-            render();
-            var a = flipped[0], b = flipped[1];
-            if (board[a] === board[b]) {
-              matched[a] = true;
-              matched[b] = true;
-              flipped = [];
-              render();
-            } else {
-              locked = true;
-              setTimeout(function () {
-                flipped = [];
-                locked = false;
-                render();
-              }, 700);
-            }
+              var a = flipped[0], b = flipped[1];
+              if (board[a] === board[b]) {
+                matched[a] = true; matched[b] = true; flipped = []; render();
+              } else {
+                locked = true;
+                setTimeout(function () { flipped = []; locked = false; render(); }, 700);
+              }
+            });
           });
-        });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () {
+            board = shuffledBoard(); flipped = []; matched = {}; moves = 0; locked = false; render();
+          });
+        }
       }
 
-      var shuffleBtn = document.getElementById('puzzleShuffleBtn');
-      if (shuffleBtn) {
-        shuffleBtn.addEventListener('click', function () {
-          board = shuffledBoard();
-          flipped = [];
-          matched = {};
-          moves = 0;
-          locked = false;
-          render();
-        });
-      }
+      board = shuffledBoard();
+      render();
     }
 
-    board = shuffledBoard();
-    render();
+    /* ---- Sliding tile (8-puzzle) ---- */
+    function initSlidePuzzle() {
+      var board = [], moves = 0;
+
+      function neighborsOf(idx) {
+        var row = Math.floor(idx / 3), col = idx % 3;
+        var result = [];
+        if (row > 0) result.push(idx - 3);
+        if (row < 2) result.push(idx + 3);
+        if (col > 0) result.push(idx - 1);
+        if (col < 2) result.push(idx + 1);
+        return result;
+      }
+      function isSolved(b) {
+        for (var i = 0; i < 8; i++) { if (b[i] !== i + 1) return false; }
+        return b[8] === 0;
+      }
+      function shuffledBoard() {
+        var b = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        var blank = 8, last = -1;
+        for (var i = 0; i < 120; i++) {
+          var options = neighborsOf(blank).filter(function (n) { return n !== last; });
+          if (!options.length) options = neighborsOf(blank);
+          var pick = options[Math.floor(Math.random() * options.length)];
+          b[blank] = b[pick]; b[pick] = 0; last = blank; blank = pick;
+        }
+        return b;
+      }
+
+      function render() {
+        var solved = isSolved(board);
+        var tilesHtml = board.map(function (v, i) {
+          if (v === 0) return '<div class="slide-tile slide-tile--blank"></div>';
+          return '<button type="button" class="slide-tile" data-idx="' + i + '">' + v + '</button>';
+        }).join('');
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Slide to Solve</span>' +
+          '<div class="slide-grid">' + tilesHtml + '</div>' +
+          '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
+            (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
+          '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">shuffle again</button>';
+
+        if (!solved) {
+          puzzleWidget.querySelectorAll('.slide-tile[data-idx]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              var blank = board.indexOf(0);
+              if (neighborsOf(blank).indexOf(idx) !== -1) {
+                board[blank] = board[idx]; board[idx] = 0; moves++; render();
+              }
+            });
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () { board = shuffledBoard(); moves = 0; render(); });
+        }
+      }
+
+      board = shuffledBoard();
+      render();
+    }
+
+    /* ---- Word Scramble ---- */
+    function initScramblePuzzle() {
+      var WORDS = [
+        'PUZZLE', 'GARDEN', 'WINDOW', 'PLANET', 'GUITAR', 'PENCIL', 'BRIDGE', 'CANDLE',
+        'DRAGON', 'ISLAND', 'JACKET', 'KETTLE', 'LANTERN', 'MARBLE', 'ORANGE', 'PILLOW',
+        'RIBBON', 'SILVER', 'TUNNEL', 'VELVET', 'WHISTLE', 'YELLOW', 'ANCHOR', 'BASKET',
+        'CIRCUS', 'DOLPHIN', 'FOUNTAIN', 'GALAXY', 'HARBOR', 'IGLOO', 'JIGSAW', 'KINGDOM',
+        'LIBRARY', 'MEADOW', 'COMPASS', 'HORIZON', 'LANTERN', 'MYSTERY', 'PATTERN'
+      ];
+      var word = '';
+      var scrambled = '';
+      var solved = false;
+      var attempts = 0;
+
+      function scrambleWord(w) {
+        var letters;
+        do {
+          letters = fisherShuffle(w.split(''));
+        } while (letters.join('') === w);
+        return letters.join('');
+      }
+
+      function newWord() {
+        word = WORDS[Math.floor(Math.random() * WORDS.length)];
+        scrambled = scrambleWord(word);
+        solved = false;
+        attempts = 0;
+      }
+
+      function render(message) {
+        var tilesHtml = scrambled.split('').map(function (ch) {
+          return '<span class="scramble-letter">' + escapeHtml(ch) + '</span>';
+        }).join('');
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Word Scramble</span>' +
+          '<div class="scramble-tiles">' + tilesHtml + '</div>' +
+          (solved
+            ? '<div class="puzzle-count puzzle-count--solved">🎉 It was ' + escapeHtml(word) + '!</div>'
+            : '<form class="puzzle-form" id="scrambleForm" autocomplete="off">' +
+                '<input type="text" class="name-input" id="scrambleInput" maxlength="' + word.length + '" placeholder="Unscramble it" autocapitalize="characters" required>' +
+                '<button type="submit" class="name-submit">Check</button>' +
+              '</form>' +
+              (message ? '<div class="puzzle-feedback">' + escapeHtml(message) + '</div>' : '') +
+              '<div class="puzzle-count">' + (attempts ? attempts + (attempts === 1 ? ' try so far' : ' tries so far') : '') + '</div>'
+          ) +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new word</button>';
+
+        var form = document.getElementById('scrambleForm');
+        if (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var input = document.getElementById('scrambleInput');
+            var guess = input.value.trim().toUpperCase();
+            attempts++;
+            if (guess === word) { solved = true; render(); }
+            else { render('Not quite — try again'); }
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () { newWord(); render(); });
+        }
+      }
+
+      newWord();
+      render();
+    }
+
+    /* ---- Lights Out ---- */
+    function initLightsOutPuzzle() {
+      var SIZE = 4;
+      var cells = 0;
+      var lit = [];
+      var moves = 0;
+
+      function neighborsOf(idx) {
+        var row = Math.floor(idx / SIZE), col = idx % SIZE;
+        var result = [idx];
+        if (row > 0) result.push(idx - SIZE);
+        if (row < SIZE - 1) result.push(idx + SIZE);
+        if (col > 0) result.push(idx - 1);
+        if (col < SIZE - 1) result.push(idx + 1);
+        return result;
+      }
+      function toggle(state, idx) {
+        neighborsOf(idx).forEach(function (n) { state[n] = !state[n]; });
+      }
+      function isSolved(state) { return state.every(function (v) { return !v; }); }
+      function scrambledState() {
+        var state = new Array(cells).fill(false);
+        for (var i = 0; i < 14; i++) {
+          toggle(state, Math.floor(Math.random() * cells));
+        }
+        return state;
+      }
+
+      function render() {
+        var solved = isSolved(lit);
+        var cellsHtml = lit.map(function (on, i) {
+          return '<button type="button" class="lightsout-cell' + (on ? ' is-on' : '') + '" data-idx="' + i + '"></button>';
+        }).join('');
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Lights Out</span>' +
+          '<div class="lightsout-grid">' + cellsHtml + '</div>' +
+          '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
+            (solved ? '🎉 All out in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
+          '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new puzzle</button>';
+
+        if (!solved) {
+          puzzleWidget.querySelectorAll('.lightsout-cell').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              toggle(lit, idx);
+              moves++;
+              render();
+            });
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () { lit = scrambledState(); moves = 0; render(); });
+        }
+      }
+
+      cells = SIZE * SIZE;
+      lit = scrambledState();
+      render();
+    }
+
+    /* ---- Tic-Tac-Toe vs. computer ---- */
+    function initTicTacToePuzzle() {
+      var board = [];
+      var over = false;
+      var statusMessage = 'Your turn (X)';
+
+      var LINES = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+
+      function winnerOf(b) {
+        for (var i = 0; i < LINES.length; i++) {
+          var l = LINES[i];
+          if (b[l[0]] && b[l[0]] === b[l[1]] && b[l[1]] === b[l[2]]) return b[l[0]];
+        }
+        return null;
+      }
+      function isFull(b) { return b.every(function (v) { return v; }); }
+
+      function minimax(b, isMax) {
+        var winner = winnerOf(b);
+        if (winner === 'O') return 1;
+        if (winner === 'X') return -1;
+        if (isFull(b)) return 0;
+        var best = isMax ? -Infinity : Infinity;
+        for (var i = 0; i < 9; i++) {
+          if (b[i]) continue;
+          b[i] = isMax ? 'O' : 'X';
+          var score = minimax(b, !isMax);
+          b[i] = null;
+          best = isMax ? Math.max(best, score) : Math.min(best, score);
+        }
+        return best;
+      }
+      function computerMove(b) {
+        var bestScore = -Infinity, move = -1;
+        for (var i = 0; i < 9; i++) {
+          if (b[i]) continue;
+          b[i] = 'O';
+          var score = minimax(b, false);
+          b[i] = null;
+          if (score > bestScore) { bestScore = score; move = i; }
+        }
+        return move;
+      }
+
+      function markSvg(mark) {
+        if (mark === 'X') {
+          return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>';
+        }
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"></circle></svg>';
+      }
+
+      function newGame() {
+        board = new Array(9).fill(null);
+        over = false;
+        statusMessage = 'Your turn (X)';
+      }
+
+      function render() {
+        var cellsHtml = board.map(function (mark, i) {
+          return '<button type="button" class="tictactoe-cell" data-idx="' + i + '"' + (mark || over ? ' disabled' : '') + '>' +
+            (mark ? markSvg(mark) : '') +
+          '</button>';
+        }).join('');
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Tic-Tac-Toe</span>' +
+          '<div class="tictactoe-grid">' + cellsHtml + '</div>' +
+          '<div class="puzzle-count' + (over ? ' puzzle-count--solved' : '') + '">' + escapeHtml(statusMessage) + '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new game</button>';
+
+        if (!over) {
+          puzzleWidget.querySelectorAll('.tictactoe-cell').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              if (board[idx] || over) return;
+              board[idx] = 'X';
+
+              var winner = winnerOf(board);
+              if (winner || isFull(board)) {
+                over = true;
+                statusMessage = winner === 'X' ? '🎉 You win!' : winner === 'O' ? 'Computer wins!' : "It's a draw!";
+                render();
+                return;
+              }
+
+              var move = computerMove(board);
+              if (move !== -1) board[move] = 'O';
+              winner = winnerOf(board);
+              if (winner || isFull(board)) {
+                over = true;
+                statusMessage = winner === 'X' ? '🎉 You win!' : winner === 'O' ? 'Computer wins!' : "It's a draw!";
+              } else {
+                statusMessage = 'Your turn (X)';
+              }
+              render();
+            });
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () { newGame(); render(); });
+        }
+      }
+
+      newGame();
+      render();
+    }
+
+    var PUZZLES = [initMemoryPuzzle, initSlidePuzzle, initScramblePuzzle, initLightsOutPuzzle, initTicTacToePuzzle];
+    PUZZLES[Math.floor(Math.random() * PUZZLES.length)]();
   })();
 
   /* ---------- weather ---------- */
