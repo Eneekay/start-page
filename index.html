@@ -19,27 +19,48 @@
 <div class="blob blob-2" aria-hidden="true"></div>
 <div class="blob blob-3" aria-hidden="true"></div>
 
-<main class="start-wrap">
+<div class="dashboard" id="dashboard">
 
-  <div class="clock-card glass">
+  <section class="widget greeting-widget glass" id="greetingWidget" aria-live="polite"></section>
+
+  <section class="widget clock-widget glass">
     <div class="clock" id="clock">00:00:00</div>
     <div class="date" id="date">&nbsp;</div>
-    <div class="fact-divider" aria-hidden="true"></div>
-    <div class="fact" aria-live="polite">
-      <span class="fact-eyebrow">Did you know?</span>
-      <p class="fact-text" id="fact">&nbsp;</p>
-      <button type="button" class="fact-refresh" id="factRefresh" aria-label="Show another fact">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12a9 9 0 0 1 15.3-6.3L21 8"></path>
-          <path d="M21 3v5h-5"></path>
-          <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16"></path>
-          <path d="M3 21v-5h5"></path>
-        </svg>
-      </button>
-    </div>
-  </div>
+  </section>
 
-  <nav class="tools-row" aria-label="Quick links">
+  <section class="widget weather-widget glass">
+    <span class="widget-eyebrow">Weather</span>
+    <div class="weather-body" id="weatherBody">
+      <div class="widget-status">Locating…</div>
+    </div>
+  </section>
+
+  <section class="widget fact-widget glass">
+    <span class="widget-eyebrow">Did you know?</span>
+    <p class="fact-text" id="fact">&nbsp;</p>
+    <button type="button" class="fact-refresh" id="factRefresh" aria-label="Show another fact">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 0 1 15.3-6.3L21 8"></path>
+        <path d="M21 3v5h-5"></path>
+        <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16"></path>
+        <path d="M3 21v-5h5"></path>
+      </svg>
+    </button>
+  </section>
+
+  <section class="widget nameday-widget glass">
+    <span class="widget-eyebrow">Greek Nameday</span>
+    <div class="nameday-row">
+      <span class="nameday-label">Today</span>
+      <span class="nameday-names" id="namedayToday">—</span>
+    </div>
+    <div class="nameday-row">
+      <span class="nameday-label">Tomorrow</span>
+      <span class="nameday-names" id="namedayTomorrow">—</span>
+    </div>
+  </section>
+
+  <nav class="widget tools-dock glass" aria-label="Quick links">
 
     <a class="tool-tile" href="https://mail.google.com/" target="_blank" rel="noopener">
       <span class="tool-tile-icon glass">
@@ -110,10 +131,12 @@
 
   </nav>
 
-</main>
+</div>
 
 <script src="js/bootstrap.bundle.min.js"></script>
 <script src="js/facts.js"></script>
+<script src="js/languages.js"></script>
+<script src="js/namedays.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
