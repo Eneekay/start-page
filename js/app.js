@@ -70,10 +70,18 @@
     var bucket = getTimeBucket(new Date().getHours());
     var phrase = lang[bucket];
     var englishPhrase = (lang.translations && lang.translations[bucket]) || ENGLISH_GREETING[bucket];
+    var pronEn = lang.pronEn && lang.pronEn[bucket];
+    var pronGr = lang.pronGr && lang.pronGr[bucket];
+    var pronLine = '';
+    if (pronEn || pronGr) {
+      pronLine = '<div class="greeting-pron">Say it: ' + (pronEn ? escapeHtml(pronEn) : '') +
+        (pronEn && pronGr ? ' · ' : '') + (pronGr ? escapeHtml(pronGr) : '') + '</div>';
+    }
 
     greetingWidget.innerHTML =
       '<div class="greeting-text">' + escapeHtml(phrase) + ', ' + escapeHtml(name) + '</div>' +
       '<div class="greeting-meta"><span class="lang-name">' + escapeHtml(lang.english) + '</span> (' + escapeHtml(lang.native) + ')<br>“' + escapeHtml(englishPhrase) + ', ' + escapeHtml(name) + '”</div>' +
+      pronLine +
       '<button type="button" class="change-name-link" id="changeNameBtn">not you?</button>';
 
     var changeBtn = document.getElementById('changeNameBtn');
@@ -379,7 +387,7 @@
   /* ---------- custom countdown ---------- */
 
   var COUNTDOWN_KEY = 'startpage_countdown';
-  var countdownWidget = document.getElementById('countdownWidget');
+  var countdownWidget = document.getElementById('countdownBody');
   var countdownDateFormatter = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 
   function renderCountdownDisplay(data) {
@@ -441,6 +449,87 @@
     }
   })();
 
+  /* ---------- on this day ---------- */
+
+  (function renderOnThisDay() {
+    var el = document.getElementById('onThisDayWidget');
+    if (!el) return;
+    var ON_THIS_DAY = window.ON_THIS_DAY || {};
+    var mmdd = pad2(new Date().getMonth() + 1) + '-' + pad2(new Date().getDate());
+    var entry = ON_THIS_DAY[mmdd];
+    if (entry) {
+      var yearsAgo = new Date().getFullYear() - entry.year;
+      el.innerHTML =
+        '<span class="widget-eyebrow">On This Day</span>' +
+        '<div class="onthisday-year">' + entry.year + '</div>' +
+        '<p class="onthisday-text">' + escapeHtml(entry.text) + '</p>' +
+        '<div class="onthisday-ago">' + yearsAgo + ' years ago today</div>';
+    } else {
+      el.innerHTML =
+        '<span class="widget-eyebrow">On This Day</span>' +
+        '<p class="onthisday-text onthisday-text--empty">No notable historical event logged for this day yet.</p>';
+    }
+  })();
+
+  /* ---------- puzzle: guess the number ---------- */
+
+  (function () {
+    var puzzleWidget = document.getElementById('puzzleWidget');
+    if (!puzzleWidget) return;
+    var PUZZLE_MAX = 50;
+    var target = Math.floor(Math.random() * PUZZLE_MAX) + 1;
+    var guesses = 0;
+    var solved = false;
+
+    function render(message, messageType) {
+      puzzleWidget.innerHTML =
+        '<span class="widget-eyebrow">Puzzle — Guess the Number</span>' +
+        '<div class="puzzle-body">' +
+          '<p class="puzzle-prompt">I’m thinking of a number between 1 and ' + PUZZLE_MAX + '.</p>' +
+          (solved
+            ? '<div class="puzzle-feedback puzzle-feedback--win">🎉 Correct — ' + target + ' in ' + guesses + (guesses === 1 ? ' guess!' : ' guesses!') + '</div>'
+            : '<form class="puzzle-form" id="puzzleForm" autocomplete="off">' +
+                '<input type="number" class="name-input" id="puzzleInput" min="1" max="' + PUZZLE_MAX + '" placeholder="Your guess" required>' +
+                '<button type="submit" class="name-submit">Guess</button>' +
+              '</form>' +
+              (message ? '<div class="puzzle-feedback' + (messageType ? ' puzzle-feedback--' + messageType : '') + '">' + escapeHtml(message) + '</div>' : '') +
+              '<div class="puzzle-count">' + (guesses ? guesses + (guesses === 1 ? ' guess so far' : ' guesses so far') : '') + '</div>'
+          ) +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new number</button>' +
+        '</div>';
+
+      var form = document.getElementById('puzzleForm');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var input = document.getElementById('puzzleInput');
+          var guess = parseInt(input.value, 10);
+          if (isNaN(guess)) return;
+          guesses++;
+          if (guess === target) {
+            solved = true;
+            render();
+          } else if (guess < target) {
+            render('Higher! ⬆️', 'hint');
+          } else {
+            render('Lower! ⬇️', 'hint');
+          }
+        });
+      }
+      var resetBtn = document.getElementById('puzzleResetBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+          target = Math.floor(Math.random() * PUZZLE_MAX) + 1;
+          guesses = 0;
+          solved = false;
+          render();
+        });
+      }
+    }
+
+    render();
+  })();
+
   /* ---------- weather ---------- */
 
   var WEATHER_KEY = 'startpage_location';
@@ -449,6 +538,7 @@
   var weatherRefreshTimer = null;
   var lastDailyForecast = null;
   var forecastExpanded = false;
+  var lastClimatology = null;
   var forecastDayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 
   var WEATHER_CODES = {
@@ -540,6 +630,7 @@
       '<div class="weather-desc">' + escapeHtml(info.desc) + '</div>' +
       '<div class="weather-location">' + escapeHtml(locationName) + '</div>' +
       '<div class="weather-meta">Feels like ' + feelsLike + '° · ' + humidity + '% humidity · ' + wind + ' km/h wind</div>' +
+      (lastClimatology ? '<div class="weather-climatology">Typically ' + lastClimatology.avgHigh + '°/' + lastClimatology.avgLow + '° today <span class="climatology-note">(1991–2020 avg)</span></div>' : '') +
       (daily && maxDays ? '<div class="' + stripClass + '" id="forecastStrip">' + buildForecastHtml(daily, visibleDays) + '</div>' : '') +
       (daily && maxDays > 5 ? '<button type="button" class="weather-more-btn" id="forecastToggleBtn">' + (forecastExpanded ? 'Show 5-day forecast' : 'Show ' + maxDays + '-day forecast') + '</button>' : '') +
       '<button type="button" class="weather-change-link" id="weatherChangeBtn">change location</button>';
@@ -556,8 +647,49 @@
     }
   }
 
+  function loadClimatology(lat, lon, current, daily, name) {
+    var mmdd = pad2(new Date().getMonth() + 1) + '-' + pad2(new Date().getDate());
+    var cacheKey = 'startpage_climatology_' + lat.toFixed(2) + '_' + lon.toFixed(2) + '_' + mmdd;
+    var cached = null;
+    try { cached = JSON.parse(safeStorageGet(cacheKey) || 'null'); } catch (e) { cached = null; }
+    if (cached && cached.avgHigh != null) {
+      lastClimatology = cached;
+      renderWeather(current, daily, name);
+      return;
+    }
+    var url = 'https://archive-api.open-meteo.com/v1/archive?latitude=' + encodeURIComponent(lat) +
+      '&longitude=' + encodeURIComponent(lon) +
+      '&start_date=1991-01-01&end_date=2020-12-31&daily=temperature_2m_max,temperature_2m_min&timezone=auto';
+
+    fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('climatology request failed'); return r.json(); })
+      .then(function (data) {
+        var times = data.daily && data.daily.time ? data.daily.time : [];
+        var highs = [];
+        var lows = [];
+        for (var i = 0; i < times.length; i++) {
+          if (times[i].slice(5) === mmdd) {
+            var hi = data.daily.temperature_2m_max[i];
+            var lo = data.daily.temperature_2m_min[i];
+            if (hi != null) highs.push(hi);
+            if (lo != null) lows.push(lo);
+          }
+        }
+        if (!highs.length || !lows.length) return;
+        var result = {
+          avgHigh: Math.round(highs.reduce(function (a, b) { return a + b; }, 0) / highs.length),
+          avgLow: Math.round(lows.reduce(function (a, b) { return a + b; }, 0) / lows.length)
+        };
+        safeStorageSet(cacheKey, JSON.stringify(result));
+        lastClimatology = result;
+        renderWeather(current, daily, name);
+      })
+      .catch(function () { /* decorative feature — fail silently */ });
+  }
+
   function loadWeather(lat, lon, name) {
     lastWeatherCoords = { lat: lat, lon: lon, name: name };
+    lastClimatology = null;
     setWeatherStatus('Loading weather…');
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(lat) +
       '&longitude=' + encodeURIComponent(lon) +
@@ -569,6 +701,7 @@
       .then(function (data) {
         forecastExpanded = false;
         renderWeather(data.current, data.daily, name);
+        loadClimatology(lat, lon, data.current, data.daily, name);
       })
       .catch(function () { setWeatherStatus('Weather unavailable right now.'); });
 

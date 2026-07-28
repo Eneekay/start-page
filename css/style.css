@@ -85,14 +85,14 @@ body {
   margin: 0 auto;
   padding: clamp(0.75rem, 1.6vw, 1.5rem);
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr) minmax(0, 0.85fr) minmax(0, 0.95fr);
-  grid-template-rows: 0.55fr 1.15fr auto auto;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 1fr);
+  grid-template-rows: 1.2fr 0.9fr 0.9fr auto;
   grid-template-areas:
-    "greeting clock    weather bankholiday"
-    "fact     calendar weather countdown"
-    "fact     calendar weather countdown"
-    "tools    tools    tools   tools";
-  gap: clamp(0.55rem, 1.1vw, 0.9rem);
+    "clockgreet fact      calendar"
+    "weather    onthisday bankholiday"
+    "weather    puzzle    countdown"
+    "tools      tools     tools";
+  gap: clamp(0.6rem, 1.2vw, 1rem);
 }
 
 .widget {
@@ -117,17 +117,18 @@ body {
   .widget:hover { transform: none; }
 }
 
-.greeting-widget { grid-area: greeting; align-items: center; justify-content: center; text-align: center; }
-.clock-widget { grid-area: clock; align-items: center; justify-content: center; text-align: center; }
+.clockgreeting-widget { grid-area: clockgreet; align-items: center; justify-content: center; text-align: center; }
 .weather-widget { grid-area: weather; align-items: center; text-align: center; }
 .bankholiday-widget { grid-area: bankholiday; align-items: center; justify-content: center; text-align: center; }
 .fact-widget { grid-area: fact; justify-content: flex-start; text-align: center; }
 .calendar-widget { grid-area: calendar; justify-content: flex-start; }
+.onthisday-widget { grid-area: onthisday; justify-content: flex-start; text-align: center; }
+.puzzle-widget { grid-area: puzzle; justify-content: flex-start; text-align: center; }
 .countdown-widget { grid-area: countdown; align-items: center; justify-content: center; text-align: center; }
 .tools-dock { grid-area: tools; flex-direction: row; align-items: center; justify-content: space-evenly; }
 
 /* small-screen / short-viewport fallback: stack and allow scrolling */
-@media (max-width: 1150px), (max-height: 780px) {
+@media (max-width: 1100px), (max-height: 820px) {
   html, body { height: auto; overflow: auto; }
   .dashboard {
     height: auto;
@@ -164,7 +165,7 @@ body {
 .clock {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
-  font-size: clamp(1.5rem, 3.4vw, 2.7rem);
+  font-size: clamp(2.1rem, 4.6vw, 3.8rem);
   line-height: 1;
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
@@ -182,6 +183,8 @@ body {
 }
 
 /* ---------- greeting / name ---------- */
+
+.greeting-slot { margin-bottom: 0.6rem; min-height: 1px; }
 
 .greeting-text {
   font-family: 'Space Grotesk', sans-serif;
@@ -201,6 +204,14 @@ body {
 .greeting-meta .lang-name {
   color: var(--nk-c1);
   font-weight: 600;
+}
+
+.greeting-pron {
+  margin-top: 0.3rem;
+  font-size: clamp(0.58rem, 0.8vw, 0.68rem);
+  font-style: italic;
+  color: var(--nk-c1);
+  opacity: 0.85;
 }
 
 .change-name-link,
@@ -229,7 +240,8 @@ body {
 
 .name-form,
 .location-form,
-.countdown-form {
+.countdown-form,
+.puzzle-form {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -572,6 +584,15 @@ body {
   line-height: 1.4;
 }
 
+.weather-climatology {
+  font-size: 0.6rem;
+  color: var(--nk-c1);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+.climatology-note { color: var(--nk-cream); opacity: 0.8; }
+
 .forecast-strip {
   display: flex;
   gap: 0.4rem;
@@ -647,6 +668,63 @@ body {
 .weather-more-btn:focus-visible {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(111, 194, 255, 0.4);
+}
+
+/* ---------- on this day ---------- */
+
+.onthisday-year {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+  color: var(--nk-c1);
+  line-height: 1;
+}
+
+.onthisday-text {
+  margin: 0.4rem 0 0;
+  font-size: clamp(0.7rem, 1.05vw, 0.85rem);
+  line-height: 1.5;
+  color: var(--nk-cream-strong);
+}
+
+.onthisday-text--empty { color: var(--nk-cream); }
+
+.onthisday-ago {
+  margin-top: 0.4rem;
+  font-size: 0.62rem;
+  color: var(--nk-cream);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+/* ---------- puzzle ---------- */
+
+.puzzle-body { width: 100%; display: flex; flex-direction: column; align-items: center; }
+
+.puzzle-prompt {
+  margin: 0 0 0.5rem;
+  font-size: clamp(0.7rem, 1.05vw, 0.85rem);
+  color: var(--nk-cream-strong);
+  line-height: 1.4;
+}
+
+.puzzle-form input[type="number"] { max-width: 130px; }
+
+.puzzle-feedback {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--nk-c1);
+}
+
+.puzzle-feedback--hint { color: var(--nk-gold); }
+.puzzle-feedback--win { font-size: 0.85rem; color: var(--nk-c1); }
+
+.puzzle-count {
+  margin-top: 0.35rem;
+  font-size: 0.62rem;
+  color: var(--nk-cream);
 }
 
 /* ---------- tool tiles ---------- */

@@ -21,25 +21,10 @@
 
 <div class="dashboard" id="dashboard">
 
-  <section class="widget greeting-widget glass" id="greetingWidget" aria-live="polite"></section>
-
-  <section class="widget clock-widget glass">
+  <section class="widget clockgreeting-widget glass">
+    <div class="greeting-slot" id="greetingWidget" aria-live="polite"></div>
     <div class="clock" id="clock">00:00:00</div>
     <div class="date" id="date">&nbsp;</div>
-  </section>
-
-  <section class="widget weather-widget glass">
-    <span class="widget-eyebrow">Weather</span>
-    <div class="weather-body" id="weatherBody">
-      <div class="widget-status">Locating…</div>
-    </div>
-  </section>
-
-  <section class="widget bankholiday-widget glass">
-    <span class="widget-eyebrow">Next UK Bank Holiday</span>
-    <div class="bankholiday-name" id="bankHolidayName">—</div>
-    <div class="bankholiday-date" id="bankHolidayDate">&nbsp;</div>
-    <div class="bankholiday-countdown" id="bankHolidayCountdown">&nbsp;</div>
   </section>
 
   <section class="widget fact-widget glass">
@@ -74,7 +59,28 @@
     </div>
   </section>
 
-  <section class="widget countdown-widget glass" id="countdownWidget"></section>
+  <section class="widget weather-widget glass">
+    <span class="widget-eyebrow">Weather</span>
+    <div class="weather-body" id="weatherBody">
+      <div class="widget-status">Locating…</div>
+    </div>
+  </section>
+
+  <section class="widget onthisday-widget glass" id="onThisDayWidget"></section>
+
+  <section class="widget bankholiday-widget glass">
+    <span class="widget-eyebrow">Next UK Bank Holiday</span>
+    <div class="bankholiday-name" id="bankHolidayName">—</div>
+    <div class="bankholiday-date" id="bankHolidayDate">&nbsp;</div>
+    <div class="bankholiday-countdown" id="bankHolidayCountdown">&nbsp;</div>
+  </section>
+
+  <section class="widget puzzle-widget glass" id="puzzleWidget"></section>
+
+  <section class="widget countdown-widget glass">
+    <span class="widget-eyebrow">Next Event</span>
+    <div id="countdownBody"></div>
+  </section>
 
   <nav class="widget tools-dock glass" aria-label="Quick links">
 
@@ -154,6 +160,7 @@
 <script src="js/animal-facts.js"></script>
 <script src="js/languages.js"></script>
 <script src="js/namedays.js"></script>
+<script src="js/onthisday.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
