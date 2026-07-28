@@ -295,6 +295,97 @@
   renderCalendar();
   updateNamedayDisplay();
 
+  /* ---------- live nameday feed (best-effort; falls back to the static list above) ---------- */
+
+  (function () {
+    var CALENDAR_ID = 'ccbe68e64749103054bced1dac20560003d8b59c4327e2194c2ae149dd9e746e@group.calendar.google.com';
+    var CACHE_KEY = 'startpage_namedays_feed_cache_v1';
+    var MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+    function unescapeIcsText(s) {
+      return s.replace(/\\n/gi, ', ').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+    }
+
+    function parseIcsNamedays(icsText) {
+      var lines = icsText.replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '').split('\n');
+      var result = {};
+      var inEvent = false, dtstart = null, summary = null;
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line.indexOf('BEGIN:VEVENT') === 0) { inEvent = true; dtstart = null; summary = null; continue; }
+        if (line.indexOf('END:VEVENT') === 0) {
+          if (inEvent && dtstart && summary) {
+            var m = dtstart.match(/(\d{4})(\d{2})(\d{2})/);
+            if (m) {
+              var key = m[2] + '-' + m[3];
+              var names = unescapeIcsText(summary).split(/[,/]|\bkai\b|\band\b/i)
+                .map(function (s) { return s.trim(); })
+                .filter(Boolean);
+              if (names.length) result[key] = (result[key] || []).concat(names);
+            }
+          }
+          inEvent = false; continue;
+        }
+        if (!inEvent) continue;
+        if (line.indexOf('DTSTART') === 0) {
+          var idx = line.indexOf(':');
+          if (idx !== -1) dtstart = line.slice(idx + 1);
+        } else if (line.indexOf('SUMMARY') === 0) {
+          var idx2 = line.indexOf(':');
+          if (idx2 !== -1) summary = line.slice(idx2 + 1);
+        }
+      }
+      return result;
+    }
+
+    function mergeNamedays(base, extra) {
+      var merged = {}, key;
+      for (key in base) { if (base.hasOwnProperty(key)) merged[key] = base[key].slice(); }
+      for (key in extra) {
+        if (!extra.hasOwnProperty(key)) continue;
+        var existing = merged[key] || [];
+        var seen = {};
+        existing.forEach(function (n) { seen[n] = true; });
+        extra[key].forEach(function (n) {
+          if (!seen[n]) { seen[n] = true; existing.push(n); }
+        });
+        merged[key] = existing;
+      }
+      return merged;
+    }
+
+    function applyLiveNamedays(parsed) {
+      NAMEDAYS = mergeNamedays(window.GREEK_NAMEDAYS || {}, parsed);
+      updateNamedayDisplay();
+    }
+
+    var cached = null;
+    try { cached = JSON.parse(safeStorageGet(CACHE_KEY) || 'null'); } catch (e) { cached = null; }
+    if (cached && cached.data && (Date.now() - cached.fetchedAt) < MAX_AGE_MS) {
+      applyLiveNamedays(cached.data);
+      return;
+    }
+
+    var icsUrl = 'https://calendar.google.com/calendar/ical/' + encodeURIComponent(CALENDAR_ID) + '/public/basic.ics';
+    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(icsUrl);
+    var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timeoutId = controller ? setTimeout(function () { controller.abort(); }, 8000) : null;
+
+    fetch(proxyUrl, controller ? { signal: controller.signal } : undefined)
+      .then(function (res) { if (!res.ok) throw new Error('bad status'); return res.text(); })
+      .then(function (text) {
+        if (timeoutId) clearTimeout(timeoutId);
+        var parsed = parseIcsNamedays(text);
+        if (Object.keys(parsed).length === 0) throw new Error('empty feed');
+        safeStorageSet(CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), data: parsed }));
+        applyLiveNamedays(parsed);
+      })
+      .catch(function () {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (cached && cached.data) applyLiveNamedays(cached.data);
+      });
+  })();
+
   /* ---------- UK bank holidays (England & Wales) ---------- */
 
   var bankHolidayNameEl = document.getElementById('bankHolidayName');
