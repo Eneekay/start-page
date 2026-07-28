@@ -387,6 +387,75 @@
 
   renderBankHoliday();
 
+  /* ---------- local events (RSS) ---------- */
+
+  (function () {
+    var eventsBody = document.getElementById('eventsBody');
+    if (!eventsBody) return;
+
+    var FEED_URL = 'https://gohertford.co.uk/events/feed/RSS2.0/';
+    var PROXY_URL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(FEED_URL);
+    var MAX_ITEMS = 3;
+
+    function stripHtml(html) {
+      var doc = new DOMParser().parseFromString(html || '', 'text/html');
+      return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function setStatus(message) {
+      eventsBody.innerHTML = '<div class="widget-status">' + escapeHtml(message) + '</div>';
+    }
+
+    fetch(PROXY_URL)
+      .then(function (r) { if (!r.ok) throw new Error('feed request failed'); return r.text(); })
+      .then(function (xmlText) {
+        var doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+        if (doc.querySelector('parsererror')) throw new Error('feed parse failed');
+
+        var items = Array.prototype.slice.call(doc.querySelectorAll('item'));
+        if (!items.length) throw new Error('no items in feed');
+
+        var today = startOfDay(new Date());
+        var parsed = items.map(function (item) {
+          var titleEl = item.querySelector('title');
+          var linkEl = item.querySelector('link');
+          var dateEl = item.querySelector('pubDate');
+          var rawDate = dateEl ? dateEl.textContent : '';
+          var parsedDate = rawDate ? new Date(rawDate) : null;
+          var validDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null;
+          return {
+            title: stripHtml(titleEl ? titleEl.textContent : 'Untitled event'),
+            link: linkEl ? linkEl.textContent.trim() : FEED_URL,
+            date: validDate
+          };
+        });
+
+        var upcoming = parsed.filter(function (e) { return !e.date || e.date >= today; });
+        var list = (upcoming.length ? upcoming : parsed).slice();
+        list.sort(function (a, b) {
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return a.date - b.date;
+        });
+        list = list.slice(0, MAX_ITEMS);
+
+        var dateFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+        var html = '<ul class="events-list">' + list.map(function (e) {
+          var dateLabel = e.date ? dateFormatter.format(e.date) : '';
+          return '<li class="events-item"><a href="' + escapeHtml(e.link) + '" target="_blank" rel="noopener">' +
+            (dateLabel ? '<span class="events-date">' + escapeHtml(dateLabel) + '</span>' : '') +
+            '<span class="events-title">' + escapeHtml(e.title) + '</span>' +
+          '</a></li>';
+        }).join('') + '</ul>' +
+        '<a class="events-source-link" href="' + escapeHtml(FEED_URL.replace('/feed/RSS2.0/', '/')) + '" target="_blank" rel="noopener">more events →</a>';
+
+        eventsBody.innerHTML = html;
+      })
+      .catch(function () {
+        setStatus('Unable to load events right now.');
+      });
+  })();
+
   /* ---------- custom countdown ---------- */
 
   var COUNTDOWN_KEY = 'startpage_countdown';
@@ -474,72 +543,92 @@
     }
   })();
 
-  /* ---------- puzzle: sliding tile (8-puzzle) ---------- */
+  /* ---------- puzzle: memory match ---------- */
 
   (function () {
     var puzzleWidget = document.getElementById('puzzleWidget');
     if (!puzzleWidget) return;
 
+    var MEMORY_ICONS = {
+      star: '<polygon points="12 2 14.9 8.6 22 9.3 16.5 14 18.2 21 12 17.3 5.8 21 7.5 14 2 9.3 9.1 8.6"></polygon>',
+      heart: '<path d="M12 21s-7-4.35-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.65-9.5 9-9.5 9z"></path>',
+      moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
+      sun: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"></path>',
+      bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+      diamond: '<polygon points="12 2 22 12 12 22 2 12"></polygon>'
+    };
+    var ICON_KEYS = Object.keys(MEMORY_ICONS);
+
     var board = [];
+    var flipped = [];
+    var matched = {};
     var moves = 0;
+    var locked = false;
 
-    function neighborsOf(idx) {
-      var row = Math.floor(idx / 3), col = idx % 3;
-      var result = [];
-      if (row > 0) result.push(idx - 3);
-      if (row < 2) result.push(idx + 3);
-      if (col > 0) result.push(idx - 1);
-      if (col < 2) result.push(idx + 1);
-      return result;
-    }
-
-    function isSolved(b) {
-      for (var i = 0; i < 8; i++) { if (b[i] !== i + 1) return false; }
-      return b[8] === 0;
+    function iconSvg(key) {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + MEMORY_ICONS[key] + '</svg>';
     }
 
     function shuffledBoard() {
-      var b = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-      var blank = 8;
-      var last = -1;
-      for (var i = 0; i < 120; i++) {
-        var options = neighborsOf(blank).filter(function (n) { return n !== last; });
-        if (!options.length) options = neighborsOf(blank);
-        var pick = options[Math.floor(Math.random() * options.length)];
-        b[blank] = b[pick];
-        b[pick] = 0;
-        last = blank;
-        blank = pick;
+      var deck = ICON_KEYS.concat(ICON_KEYS);
+      for (var i = deck.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
       }
-      return b;
+      return deck;
+    }
+
+    function isSolved() {
+      return Object.keys(matched).length === board.length;
     }
 
     function render() {
-      var solved = isSolved(board);
-      var tilesHtml = board.map(function (v, i) {
-        if (v === 0) return '<div class="slide-tile slide-tile--blank"></div>';
-        return '<button type="button" class="slide-tile" data-idx="' + i + '">' + v + '</button>';
+      var solved = isSolved();
+      var cardsHtml = board.map(function (key, i) {
+        var faceUp = matched[i] || flipped.indexOf(i) !== -1;
+        var classes = 'memory-card' + (matched[i] ? ' is-matched' : '');
+        return '<button type="button" class="' + classes + '" data-idx="' + i + '">' +
+          (faceUp ? iconSvg(key) : '<span class="memory-card-back"></span>') +
+        '</button>';
       }).join('');
 
       puzzleWidget.innerHTML =
-        '<span class="widget-eyebrow">Puzzle — Slide to Solve</span>' +
-        '<div class="slide-grid" id="slideGrid">' + tilesHtml + '</div>' +
+        '<span class="widget-eyebrow">Puzzle — Memory Match</span>' +
+        '<div class="memory-grid" id="memoryGrid">' + cardsHtml + '</div>' +
         '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
           (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
         '</div>' +
         '<button type="button" class="countdown-change-link" id="puzzleShuffleBtn">shuffle again</button>';
 
       if (!solved) {
-        var tiles = puzzleWidget.querySelectorAll('.slide-tile[data-idx]');
-        tiles.forEach(function (btn) {
+        var cards = puzzleWidget.querySelectorAll('.memory-card');
+        cards.forEach(function (btn) {
           btn.addEventListener('click', function () {
+            if (locked) return;
             var idx = parseInt(btn.getAttribute('data-idx'), 10);
-            var blank = board.indexOf(0);
-            if (neighborsOf(blank).indexOf(idx) !== -1) {
-              board[blank] = board[idx];
-              board[idx] = 0;
-              moves++;
+            if (matched[idx] || flipped.indexOf(idx) !== -1) return;
+
+            flipped.push(idx);
+            if (flipped.length < 2) {
               render();
+              return;
+            }
+
+            moves++;
+            render();
+            var a = flipped[0], b = flipped[1];
+            if (board[a] === board[b]) {
+              matched[a] = true;
+              matched[b] = true;
+              flipped = [];
+              render();
+            } else {
+              locked = true;
+              setTimeout(function () {
+                flipped = [];
+                locked = false;
+                render();
+              }, 700);
             }
           });
         });
@@ -549,7 +638,10 @@
       if (shuffleBtn) {
         shuffleBtn.addEventListener('click', function () {
           board = shuffledBoard();
+          flipped = [];
+          matched = {};
           moves = 0;
+          locked = false;
           render();
         });
       }

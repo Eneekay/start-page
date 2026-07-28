@@ -107,7 +107,7 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(0.6rem, 1.2vw, 1rem);
+  gap: clamp(0.45rem, 0.9vw, 0.75rem);
 }
 
 .dash-col:nth-child(1) { flex-basis: 1.05fr; }
@@ -116,12 +116,13 @@ body {
 
 .widget {
   border-radius: 22px;
-  padding: clamp(0.7rem, 1.4vw, 1.3rem);
+  padding: clamp(0.6rem, 1.2vw, 1.1rem);
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
   overflow: hidden;
   min-height: 0;
+  max-height: 100%;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
@@ -142,6 +143,7 @@ body {
 .puzzle-widget,
 .countdown-widget {
   flex: 1 1 auto;
+  min-height: 150px;
 }
 
 .clockgreeting-widget { align-items: center; justify-content: center; text-align: center; }
@@ -267,7 +269,7 @@ body {
 .puzzle-form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
   width: 100%;
 }
@@ -459,7 +461,7 @@ body {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: clamp(18px, 3.4vh, 28px);
+  grid-auto-rows: clamp(14px, 2.2vh, 20px);
   gap: 2px;
 }
 
@@ -500,8 +502,8 @@ body {
 }
 
 .calendar-nameday {
-  margin-top: 0.5rem;
-  padding-top: 0.45rem;
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
   font-size: clamp(0.64rem, 0.95vw, 0.78rem);
@@ -529,17 +531,71 @@ body {
 }
 
 .bankholiday-date {
-  margin-top: 0.3rem;
+  margin-top: 0.2rem;
   font-size: clamp(0.62rem, 0.9vw, 0.75rem);
   color: var(--nk-cream);
 }
 
 .bankholiday-countdown {
-  margin-top: 0.45rem;
+  margin-top: 0.3rem;
   font-size: clamp(0.68rem, 1vw, 0.82rem);
   font-weight: 600;
   color: var(--nk-c1);
 }
+
+/* ---------- local events (RSS) ---------- */
+
+.events-body { width: 100%; }
+
+.events-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.events-item a {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+}
+
+.events-item a:hover,
+.events-item a:focus-visible { background: rgba(255, 255, 255, 0.08); }
+
+.events-date {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nk-c1);
+}
+
+.events-title {
+  margin-top: 0.1rem;
+  font-size: clamp(0.68rem, 1vw, 0.8rem);
+  color: var(--nk-cream-strong);
+  line-height: 1.3;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.events-source-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.6rem;
+  color: var(--nk-cream);
+  opacity: 0.55;
+  text-decoration: underline;
+}
+
+.events-source-link:hover { opacity: 1; color: var(--nk-c1); }
 
 /* ---------- countdown ---------- */
 
@@ -739,40 +795,46 @@ body {
   font-weight: 600;
 }
 
-/* ---------- puzzle: sliding tile ---------- */
+/* ---------- puzzle: memory match ---------- */
 
-.slide-grid {
+.memory-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: clamp(4px, 0.8vw, 7px);
-  width: min(100%, 165px);
+  width: min(100%, 260px);
   margin: 0 auto;
 }
 
-.slide-tile {
+.memory-card {
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: clamp(0.95rem, 2vw, 1.2rem);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--nk-c4);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--nk-c1);
   cursor: pointer;
   padding: 0;
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
 }
 
-.slide-tile:hover { background: rgba(255, 255, 255, 0.16); }
-.slide-tile:active { transform: scale(0.94); }
+.memory-card svg { width: 55%; height: 55%; }
 
-.slide-tile--blank {
-  background: transparent;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+.memory-card:hover { background: rgba(255, 255, 255, 0.14); }
+.memory-card:active { transform: scale(0.94); }
+
+.memory-card.is-matched {
+  background: rgba(111, 194, 255, 0.16);
+  border-color: rgba(111, 194, 255, 0.4);
   cursor: default;
+}
+
+.memory-card-back {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .puzzle-count {
