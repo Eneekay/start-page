@@ -35,8 +35,15 @@
     </div>
   </section>
 
+  <section class="widget bankholiday-widget glass">
+    <span class="widget-eyebrow">Next UK Bank Holiday</span>
+    <div class="bankholiday-name" id="bankHolidayName">—</div>
+    <div class="bankholiday-date" id="bankHolidayDate">&nbsp;</div>
+    <div class="bankholiday-countdown" id="bankHolidayCountdown">&nbsp;</div>
+  </section>
+
   <section class="widget fact-widget glass">
-    <span class="widget-eyebrow">Did you know?</span>
+    <span class="widget-eyebrow" id="factEyebrow">Did you know?</span>
     <p class="fact-text" id="fact">&nbsp;</p>
     <button type="button" class="fact-refresh" id="factRefresh" aria-label="Show another fact">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -48,17 +55,26 @@
     </button>
   </section>
 
-  <section class="widget nameday-widget glass">
-    <span class="widget-eyebrow">Greek Nameday</span>
-    <div class="nameday-row">
-      <span class="nameday-label">Today</span>
-      <span class="nameday-names" id="namedayToday">—</span>
+  <section class="widget calendar-widget glass">
+    <span class="widget-eyebrow">Calendar</span>
+    <div class="calendar-nav">
+      <button type="button" class="calendar-nav-btn" id="calPrevBtn" aria-label="Previous month">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <span class="calendar-month-label" id="calMonthLabel">&nbsp;</span>
+      <button type="button" class="calendar-nav-btn" id="calNextBtn" aria-label="Next month">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
     </div>
-    <div class="nameday-row">
-      <span class="nameday-label">Tomorrow</span>
-      <span class="nameday-names" id="namedayTomorrow">—</span>
+    <div class="calendar-weekdays" id="calWeekdays"></div>
+    <div class="calendar-grid" id="calGrid"></div>
+    <div class="calendar-nameday" id="calNameday">
+      <span class="cal-date-label" id="calDateLabel">Today</span>
+      <span id="calNamedayNames">—</span>
     </div>
   </section>
+
+  <section class="widget countdown-widget glass" id="countdownWidget"></section>
 
   <nav class="widget tools-dock glass" aria-label="Quick links">
 
@@ -135,6 +151,7 @@
 
 <script src="js/bootstrap.bundle.min.js"></script>
 <script src="js/facts.js"></script>
+<script src="js/animal-facts.js"></script>
 <script src="js/languages.js"></script>
 <script src="js/namedays.js"></script>
 <script src="js/app.js"></script>

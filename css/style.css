@@ -81,39 +81,53 @@ body {
   z-index: 1;
   width: 100%;
   height: 100vh;
-  max-width: 1520px;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: clamp(0.85rem, 2vw, 1.75rem);
+  padding: clamp(0.75rem, 1.6vw, 1.5rem);
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr) minmax(0, 0.85fr) minmax(0, 0.95fr);
   grid-template-rows: 0.55fr 1.15fr auto auto;
   grid-template-areas:
-    "greeting clock weather"
-    "fact clock weather"
-    "fact nameday weather"
-    "tools tools tools";
-  gap: clamp(0.65rem, 1.4vw, 1.1rem);
+    "greeting clock    weather bankholiday"
+    "fact     calendar weather countdown"
+    "fact     calendar weather countdown"
+    "tools    tools    tools   tools";
+  gap: clamp(0.55rem, 1.1vw, 0.9rem);
 }
 
 .widget {
-  border-radius: 24px;
-  padding: clamp(0.85rem, 1.8vw, 1.6rem);
+  border-radius: 22px;
+  padding: clamp(0.7rem, 1.4vw, 1.3rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.widget:hover {
+  transform: translateY(-5px);
+  border-color: rgba(111, 194, 255, 0.3);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget { transition: none; }
+  .widget:hover { transform: none; }
 }
 
 .greeting-widget { grid-area: greeting; align-items: center; justify-content: center; text-align: center; }
 .clock-widget { grid-area: clock; align-items: center; justify-content: center; text-align: center; }
 .weather-widget { grid-area: weather; align-items: center; text-align: center; }
+.bankholiday-widget { grid-area: bankholiday; align-items: center; justify-content: center; text-align: center; }
 .fact-widget { grid-area: fact; justify-content: flex-start; text-align: center; }
-.nameday-widget { grid-area: nameday; justify-content: center; }
+.calendar-widget { grid-area: calendar; justify-content: flex-start; }
+.countdown-widget { grid-area: countdown; align-items: center; justify-content: center; text-align: center; }
 .tools-dock { grid-area: tools; flex-direction: row; align-items: center; justify-content: space-evenly; }
 
 /* small-screen / short-viewport fallback: stack and allow scrolling */
-@media (max-width: 900px), (max-height: 680px) {
+@media (max-width: 1150px), (max-height: 780px) {
   html, body { height: auto; overflow: auto; }
   .dashboard {
     height: auto;
@@ -130,17 +144,17 @@ body {
 
 .widget-eyebrow {
   display: block;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.12em;
   color: var(--nk-gold);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.45rem;
   text-align: center;
 }
 
 .widget-status {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--nk-cream);
   margin: auto;
 }
@@ -150,17 +164,17 @@ body {
 .clock {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
-  font-size: clamp(2.1rem, 5.2vw, 4.9rem);
+  font-size: clamp(1.5rem, 3.4vw, 2.7rem);
   line-height: 1;
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   color: var(--nk-c4);
-  text-shadow: 0 0 46px rgba(111, 194, 255, 0.28);
+  text-shadow: 0 0 40px rgba(111, 194, 255, 0.28);
 }
 
 .date {
-  margin-top: 0.7rem;
-  font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+  margin-top: 0.5rem;
+  font-size: clamp(0.68rem, 1.2vw, 0.9rem);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--nk-cream);
@@ -172,14 +186,14 @@ body {
 .greeting-text {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
-  font-size: clamp(1rem, 2.1vw, 1.5rem);
+  font-size: clamp(0.85rem, 1.6vw, 1.15rem);
   color: var(--nk-c4);
   line-height: 1.25;
 }
 
 .greeting-meta {
-  margin-top: 0.5rem;
-  font-size: clamp(0.68rem, 1vw, 0.8rem);
+  margin-top: 0.4rem;
+  font-size: clamp(0.62rem, 0.85vw, 0.72rem);
   color: var(--nk-cream);
   line-height: 1.4;
 }
@@ -189,10 +203,13 @@ body {
   font-weight: 600;
 }
 
-.change-name-link {
+.change-name-link,
+.weather-change-link,
+.countdown-change-link,
+.calendar-today-link {
   display: inline-block;
-  margin-top: 0.6rem;
-  font-size: 0.68rem;
+  margin-top: 0.5rem;
+  font-size: 0.65rem;
   color: var(--nk-cream);
   opacity: 0.55;
   text-decoration: underline;
@@ -202,36 +219,40 @@ body {
   padding: 0;
 }
 
-.change-name-link:hover,
-.change-name-link:focus-visible {
+.change-name-link:hover, .change-name-link:focus-visible,
+.weather-change-link:hover, .weather-change-link:focus-visible,
+.countdown-change-link:hover, .countdown-change-link:focus-visible,
+.calendar-today-link:hover, .calendar-today-link:focus-visible {
   opacity: 1;
   color: var(--nk-c1);
 }
 
-.name-form {
+.name-form,
+.location-form,
+.countdown-form {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
   align-items: center;
   width: 100%;
 }
 
 .name-prompt {
-  font-size: clamp(0.85rem, 1.6vw, 1rem);
+  font-size: clamp(0.72rem, 1.3vw, 0.88rem);
   color: var(--nk-cream-strong);
   font-weight: 500;
 }
 
 .name-input {
   width: 100%;
-  max-width: 220px;
+  max-width: 200px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
-  padding: 0.5rem 1rem;
+  padding: 0.42rem 0.9rem;
   color: var(--nk-c4);
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   outline: none;
   text-align: center;
 }
@@ -247,24 +268,24 @@ body {
   background: var(--nk-c2);
   border: none;
   border-radius: 999px;
-  padding: 0.5rem 1.4rem;
+  padding: 0.42rem 1.2rem;
   color: #fff;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .name-submit:hover { background: var(--nk-c2h); transform: translateY(-1px); }
 
-/* ---------- science fact ---------- */
+/* ---------- science / animal fact ---------- */
 
 .fact-text {
-  margin: 0.4rem 0 0;
-  font-size: clamp(0.78rem, 1.3vw, 1rem);
-  line-height: 1.6;
+  margin: 0.35rem 0 0;
+  font-size: clamp(0.7rem, 1.05vw, 0.88rem);
+  line-height: 1.55;
   color: var(--nk-cream-strong);
-  max-width: 42ch;
+  max-width: 40ch;
   margin-inline: auto;
   overflow: hidden;
   display: -webkit-box;
@@ -287,9 +308,9 @@ body {
 }
 
 .fact-refresh {
-  margin: 0.85rem auto 0;
-  width: 28px;
-  height: 28px;
+  margin: 0.75rem auto 0;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.05);
@@ -301,7 +322,7 @@ body {
   transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
-.fact-refresh svg { width: 14px; height: 14px; }
+.fact-refresh svg { width: 13px; height: 13px; }
 
 .fact-refresh:hover,
 .fact-refresh:focus-visible {
@@ -324,35 +345,180 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ---------- Greek nameday ---------- */
+/* ---------- calendar ---------- */
 
-.nameday-row {
+.calendar-nav {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.35rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.4rem;
 }
 
-.nameday-row:first-of-type { border-top: none; }
-
-.nameday-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--nk-cream);
+.calendar-nav-btn {
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--nk-cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.nameday-names {
+.calendar-nav-btn svg { width: 12px; height: 12px; }
+
+.calendar-nav-btn:hover,
+.calendar-nav-btn:focus-visible {
+  color: var(--nk-c1);
+  border-color: rgba(111, 194, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-month-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
   font-size: clamp(0.72rem, 1.1vw, 0.88rem);
   color: var(--nk-c4);
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+  flex: 1;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.calendar-weekday {
+  font-size: 0.56rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--nk-cream);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: clamp(18px, 3.4vh, 28px);
+  gap: 2px;
+}
+
+.calendar-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.6rem, 0.9vw, 0.72rem);
+  color: var(--nk-cream-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.calendar-day:hover { background: rgba(255, 255, 255, 0.09); }
+
+.calendar-day.is-empty { cursor: default; visibility: hidden; }
+
+.calendar-day.is-today {
+  color: var(--nk-c1);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(111, 194, 255, 0.55);
+}
+
+.calendar-day.is-selected {
+  background: var(--nk-c2);
+  color: #fff;
+  font-weight: 600;
+}
+
+.calendar-day.is-selected.is-today {
+  background: var(--nk-c1);
+  color: var(--nk-c0);
+  box-shadow: none;
+}
+
+.calendar-nameday {
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  font-size: clamp(0.64rem, 0.95vw, 0.78rem);
+  color: var(--nk-c4);
+}
+
+.cal-date-label {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--nk-cream);
+  margin-bottom: 0.2rem;
+}
+
+/* ---------- bank holiday ---------- */
+
+.bankholiday-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: clamp(0.78rem, 1.2vw, 0.98rem);
+  color: var(--nk-c4);
+  line-height: 1.25;
+}
+
+.bankholiday-date {
+  margin-top: 0.3rem;
+  font-size: clamp(0.62rem, 0.9vw, 0.75rem);
+  color: var(--nk-cream);
+}
+
+.bankholiday-countdown {
+  margin-top: 0.45rem;
+  font-size: clamp(0.68rem, 1vw, 0.82rem);
+  font-weight: 600;
+  color: var(--nk-c1);
+}
+
+/* ---------- countdown ---------- */
+
+.countdown-label {
+  font-size: clamp(0.68rem, 1vw, 0.82rem);
+  color: var(--nk-cream-strong);
+  font-weight: 500;
+  margin-bottom: 0.15rem;
+}
+
+.countdown-number {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.4vw, 2.7rem);
+  color: var(--nk-c4);
+  line-height: 1;
+  text-shadow: 0 0 34px rgba(111, 194, 255, 0.25);
+}
+
+.countdown-unit {
+  margin-top: 0.15rem;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--nk-cream);
+  font-weight: 600;
+}
+
+.countdown-date {
+  margin-top: 0.4rem;
+  font-size: 0.66rem;
+  color: var(--nk-cream);
 }
 
 /* ---------- weather ---------- */
@@ -363,17 +529,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.1rem;
   width: 100%;
   flex: 1;
   justify-content: center;
 }
 
 .weather-icon {
-  width: 52px;
-  height: 52px;
+  width: 42px;
+  height: 42px;
   color: var(--nk-c1);
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.1rem;
 }
 
 .weather-icon svg { width: 100%; height: 100%; }
@@ -381,79 +547,96 @@ body {
 .weather-temp {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
-  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
   color: var(--nk-c4);
   line-height: 1;
 }
 
 .weather-desc {
-  font-size: clamp(0.78rem, 1.2vw, 0.92rem);
+  font-size: clamp(0.68rem, 1vw, 0.8rem);
   color: var(--nk-cream-strong);
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
 }
 
 .weather-location {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: var(--nk-c1);
   font-weight: 600;
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
 }
 
 .weather-meta {
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   color: var(--nk-cream);
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
   line-height: 1.4;
 }
 
 .forecast-strip {
   display: flex;
-  gap: 0.55rem;
-  overflow-x: auto;
+  gap: 0.4rem;
   width: 100%;
-  padding: 0.5rem 0.15rem 0.3rem;
-  margin-top: 0.7rem;
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.1rem 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.forecast-strip.is-scroll {
+  overflow-x: auto;
   scrollbar-width: thin;
 }
 
-.forecast-day {
+.forecast-strip:not(.is-scroll) .forecast-day {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.forecast-strip.is-scroll .forecast-day {
   flex: 0 0 auto;
+  min-width: 34px;
+}
+
+.forecast-day {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  min-width: 38px;
+  gap: 0.25rem;
 }
 
 .forecast-day-label {
   font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: var(--nk-cream);
 }
 
-.forecast-day-icon { width: 20px; height: 20px; color: var(--nk-c1); }
+.forecast-strip.is-scroll .forecast-day-label { font-size: 0.54rem; }
+
+.forecast-day-icon { width: 26px; height: 26px; color: var(--nk-c1); }
 .forecast-day-icon svg { width: 100%; height: 100%; }
 
+.forecast-strip.is-scroll .forecast-day-icon { width: 18px; height: 18px; }
+
 .forecast-day-temps {
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   display: flex;
-  gap: 0.25rem;
+  gap: 0.2rem;
   white-space: nowrap;
 }
+
+.forecast-strip.is-scroll .forecast-day-temps { font-size: 0.58rem; }
 
 .forecast-day-temps .hi { color: var(--nk-c4); font-weight: 600; }
 .forecast-day-temps .lo { color: var(--nk-cream); }
 
 .weather-more-btn {
-  margin-top: 0.55rem;
+  margin-top: 0.5rem;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  padding: 0.3rem 0.9rem;
-  font-size: 0.66rem;
+  padding: 0.28rem 0.85rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: var(--nk-c1);
   cursor: pointer;
@@ -466,45 +649,21 @@ body {
   border-color: rgba(111, 194, 255, 0.4);
 }
 
-.weather-change-link {
-  display: inline-block;
-  margin-top: 0.6rem;
-  font-size: 0.68rem;
-  color: var(--nk-cream);
-  opacity: 0.55;
-  text-decoration: underline;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-.weather-change-link:hover,
-.weather-change-link:focus-visible { opacity: 1; color: var(--nk-c1); }
-
-.location-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: center;
-  width: 100%;
-}
-
 /* ---------- tool tiles ---------- */
 
 .tool-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   text-decoration: none;
   color: var(--nk-cream-strong);
 }
 
 .tool-tile-icon {
-  width: clamp(38px, 4vw, 52px);
-  height: clamp(38px, 4vw, 52px);
-  border-radius: 16px;
+  width: clamp(34px, 3.6vw, 48px);
+  height: clamp(34px, 3.6vw, 48px);
+  border-radius: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -515,7 +674,7 @@ body {
 .tool-tile-icon svg { width: 55%; height: 55%; }
 
 .tool-tile-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   text-align: center;
@@ -530,4 +689,4 @@ body {
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(111, 194, 255, 0.25);
 }
 
-.tool-tile:focus-visible { outline: 2px solid var(--nk-c1); outline-offset: 4px; border-radius: 16px; }
+.tool-tile:focus-visible { outline: 2px solid var(--nk-c1); outline-offset: 4px; border-radius: 15px; }

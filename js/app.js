@@ -9,6 +9,8 @@
     return div.innerHTML;
   }
 
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
   function safeStorageGet(key) {
     try { return window.localStorage.getItem(key); } catch (e) { return null; }
   }
@@ -27,6 +29,10 @@
     if (hour >= 17 && hour <= 21) return 'evening';
     return 'night';
   }
+
+  function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function daysBetween(a, b) { return Math.round((startOfDay(b) - startOfDay(a)) / 86400000); }
+  function sameDate(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 
   /* ---------- clock ---------- */
 
@@ -109,11 +115,13 @@
     renderNameForm();
   }
 
-  /* ---------- science fact (with sci-fi decode refresh) ---------- */
+  /* ---------- science + animal facts (with sci-fi decode refresh) ---------- */
 
   var factEl = document.getElementById('fact');
+  var factEyebrowEl = document.getElementById('factEyebrow');
   var factRefreshBtn = document.getElementById('factRefresh');
-  var FACTS = window.SCIENCE_FACTS || [];
+  var FACTS = (window.SCIENCE_FACTS || []).map(function (t) { return { text: t, category: 'Science Fact' }; })
+    .concat((window.ANIMAL_FACTS || []).map(function (t) { return { text: t, category: 'Animal Fact' }; }));
   var lastFactIndex = -1;
   var SCRAMBLE_CHARS = '!<>-_\\/[]{}=+*^?#$%&01';
 
@@ -151,11 +159,12 @@
       index = (index + 1) % FACTS.length;
     }
     lastFactIndex = index;
-    var target = FACTS[index];
+    var entry = FACTS[index];
+    if (factEyebrowEl) factEyebrowEl.textContent = entry.category;
     if (animate && !reduceMotion) {
-      scrambleFactText(target);
+      scrambleFactText(entry.text);
     } else {
-      factEl.textContent = target;
+      factEl.textContent = entry.text;
     }
   }
 
@@ -171,35 +180,266 @@
     });
   }
 
-  /* ---------- Greek nameday ---------- */
+  /* ---------- calendar + Greek nameday ---------- */
 
-  var namedayTodayEl = document.getElementById('namedayToday');
-  var namedayTomorrowEl = document.getElementById('namedayTomorrow');
   var NAMEDAYS = window.GREEK_NAMEDAYS || {};
+  var calMonthLabelEl = document.getElementById('calMonthLabel');
+  var calWeekdaysEl = document.getElementById('calWeekdays');
+  var calGridEl = document.getElementById('calGrid');
+  var calDateLabelEl = document.getElementById('calDateLabel');
+  var calNamedayNamesEl = document.getElementById('calNamedayNames');
+  var calPrevBtn = document.getElementById('calPrevBtn');
+  var calNextBtn = document.getElementById('calNextBtn');
 
-  function namedayKey(d) {
-    var mm = String(d.getMonth() + 1).padStart(2, '0');
-    var dd = String(d.getDate()).padStart(2, '0');
-    return mm + '-' + dd;
+  var monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+  var weekdayShortFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+  var selectedDateLabelFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  var WEEKDAY_LABELS = (function () {
+    // Monday-first week labels, locale-aware short names.
+    var base = new Date(2023, 0, 2); // a Monday
+    var labels = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(base);
+      d.setDate(base.getDate() + i);
+      labels.push(weekdayShortFormatter.format(d));
+    }
+    return labels;
+  })();
+
+  var today = new Date();
+  var calendarState = {
+    viewYear: today.getFullYear(),
+    viewMonth: today.getMonth(),
+    selected: startOfDay(today)
+  };
+
+  function namedayKey(d) { return pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+
+  function updateNamedayDisplay() {
+    if (!calDateLabelEl || !calNamedayNamesEl) return;
+    var d = calendarState.selected;
+    var isToday = sameDate(d, today);
+    calDateLabelEl.textContent = isToday ? 'Today' : selectedDateLabelFormatter.format(d);
+    var names = NAMEDAYS[namedayKey(d)];
+    calNamedayNamesEl.textContent = names && names.length ? names.join(', ') : 'No major nameday';
   }
 
-  function renderNamedays() {
-    var today = new Date();
-    var tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+  function renderCalendarWeekdays() {
+    if (!calWeekdaysEl) return;
+    calWeekdaysEl.innerHTML = WEEKDAY_LABELS.map(function (label) {
+      return '<div class="calendar-weekday">' + escapeHtml(label) + '</div>';
+    }).join('');
+  }
 
-    var todayNames = NAMEDAYS[namedayKey(today)];
-    var tomorrowNames = NAMEDAYS[namedayKey(tomorrow)];
+  function renderCalendar() {
+    if (!calGridEl || !calMonthLabelEl) return;
+    var y = calendarState.viewYear;
+    var m = calendarState.viewMonth;
+    calMonthLabelEl.textContent = monthFormatter.format(new Date(y, m, 1));
 
-    if (namedayTodayEl) {
-      namedayTodayEl.textContent = todayNames && todayNames.length ? todayNames.join(', ') : 'No major nameday';
+    var firstOfMonth = new Date(y, m, 1);
+    var leadingBlanks = (firstOfMonth.getDay() + 6) % 7; // Monday = 0
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+
+    var html = '';
+    for (var b = 0; b < leadingBlanks; b++) {
+      html += '<div class="calendar-day is-empty"></div>';
     }
-    if (namedayTomorrowEl) {
-      namedayTomorrowEl.textContent = tomorrowNames && tomorrowNames.length ? tomorrowNames.join(', ') : 'No major nameday';
+    for (var day = 1; day <= daysInMonth; day++) {
+      var cellDate = new Date(y, m, day);
+      var classes = 'calendar-day';
+      if (sameDate(cellDate, today)) classes += ' is-today';
+      if (sameDate(cellDate, calendarState.selected)) classes += ' is-selected';
+      html += '<button type="button" class="' + classes + '" data-day="' + day + '">' + day + '</button>';
+    }
+    calGridEl.innerHTML = html;
+
+    var dayButtons = calGridEl.querySelectorAll('.calendar-day:not(.is-empty)');
+    dayButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = parseInt(btn.getAttribute('data-day'), 10);
+        calendarState.selected = new Date(calendarState.viewYear, calendarState.viewMonth, d);
+        renderCalendar();
+        updateNamedayDisplay();
+      });
+    });
+  }
+
+  if (calPrevBtn) {
+    calPrevBtn.addEventListener('click', function () {
+      calendarState.viewMonth -= 1;
+      if (calendarState.viewMonth < 0) { calendarState.viewMonth = 11; calendarState.viewYear -= 1; }
+      renderCalendar();
+    });
+  }
+  if (calNextBtn) {
+    calNextBtn.addEventListener('click', function () {
+      calendarState.viewMonth += 1;
+      if (calendarState.viewMonth > 11) { calendarState.viewMonth = 0; calendarState.viewYear += 1; }
+      renderCalendar();
+    });
+  }
+
+  renderCalendarWeekdays();
+  renderCalendar();
+  updateNamedayDisplay();
+
+  /* ---------- UK bank holidays (England & Wales) ---------- */
+
+  var bankHolidayNameEl = document.getElementById('bankHolidayName');
+  var bankHolidayDateEl = document.getElementById('bankHolidayDate');
+  var bankHolidayCountdownEl = document.getElementById('bankHolidayCountdown');
+  var bankHolidayDateFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+
+  function computeEasterSunday(year) {
+    var a = year % 19;
+    var b = Math.floor(year / 100);
+    var c = year % 100;
+    var d = Math.floor(b / 4);
+    var e = b % 4;
+    var f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3);
+    var h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4);
+    var k = c % 4;
+    var l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31);
+    var day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  }
+
+  function nthWeekdayOfMonth(year, month, weekday, n) {
+    var d = new Date(year, month, 1);
+    var offset = (weekday - d.getDay() + 7) % 7;
+    var day = 1 + offset + (n - 1) * 7;
+    return new Date(year, month, day);
+  }
+
+  function lastWeekdayOfMonth(year, month, weekday) {
+    var d = new Date(year, month + 1, 0);
+    var offset = (d.getDay() - weekday + 7) % 7;
+    return new Date(year, month, d.getDate() - offset);
+  }
+
+  function addWeekendSubstitute(dates, date) {
+    var d = new Date(date);
+    var day = d.getDay();
+    if (day === 6) d.setDate(d.getDate() + 2);
+    else if (day === 0) d.setDate(d.getDate() + 1);
+    while (dates.some(function (existing) { return sameDate(existing.date, d); })) {
+      d.setDate(d.getDate() + 1);
+    }
+    return d;
+  }
+
+  function getUKBankHolidays(year) {
+    var easter = computeEasterSunday(year);
+    var goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
+    var easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
+
+    var holidays = [];
+    holidays.push({ name: "New Year's Day", date: addWeekendSubstitute(holidays, new Date(year, 0, 1)) });
+    holidays.push({ name: 'Good Friday', date: goodFriday });
+    holidays.push({ name: 'Easter Monday', date: easterMonday });
+    holidays.push({ name: 'Early May Bank Holiday', date: nthWeekdayOfMonth(year, 4, 1, 1) });
+    holidays.push({ name: 'Spring Bank Holiday', date: lastWeekdayOfMonth(year, 4, 1) });
+    holidays.push({ name: 'Summer Bank Holiday', date: lastWeekdayOfMonth(year, 7, 1) });
+    holidays.push({ name: 'Christmas Day', date: addWeekendSubstitute(holidays, new Date(year, 11, 25)) });
+    holidays.push({ name: 'Boxing Day', date: addWeekendSubstitute(holidays, new Date(year, 11, 26)) });
+
+    holidays.sort(function (a, b) { return a.date - b.date; });
+    return holidays;
+  }
+
+  function getNextBankHoliday(fromDate) {
+    var from = startOfDay(fromDate);
+    var candidates = getUKBankHolidays(from.getFullYear()).concat(getUKBankHolidays(from.getFullYear() + 1));
+    for (var i = 0; i < candidates.length; i++) {
+      if (startOfDay(candidates[i].date) >= from) return candidates[i];
+    }
+    return null;
+  }
+
+  function renderBankHoliday() {
+    if (!bankHolidayNameEl) return;
+    var next = getNextBankHoliday(new Date());
+    if (!next) {
+      bankHolidayNameEl.textContent = 'Unavailable';
+      return;
+    }
+    var days = daysBetween(new Date(), next.date);
+    bankHolidayNameEl.textContent = next.name;
+    bankHolidayDateEl.textContent = bankHolidayDateFormatter.format(next.date);
+    bankHolidayCountdownEl.textContent = days === 0 ? "It's today!" : days === 1 ? '1 day to go' : days + ' days to go';
+  }
+
+  renderBankHoliday();
+
+  /* ---------- custom countdown ---------- */
+
+  var COUNTDOWN_KEY = 'startpage_countdown';
+  var countdownWidget = document.getElementById('countdownWidget');
+  var countdownDateFormatter = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+
+  function renderCountdownDisplay(data) {
+    if (!countdownWidget) return;
+    var target = startOfDay(new Date(data.date + 'T00:00:00'));
+    var days = daysBetween(new Date(), target);
+    var label = data.label ? data.label : 'Countdown';
+    var number, unit;
+    if (days > 0) { number = days; unit = days === 1 ? 'day to go' : 'days to go'; }
+    else if (days === 0) { number = ''; unit = "It's today!"; }
+    else { number = Math.abs(days); unit = Math.abs(days) === 1 ? 'day ago' : 'days ago'; }
+
+    countdownWidget.innerHTML =
+      '<div class="countdown-label">' + escapeHtml(label) + '</div>' +
+      '<div class="countdown-number">' + number + '</div>' +
+      '<div class="countdown-unit">' + escapeHtml(unit) + '</div>' +
+      '<div class="countdown-date">' + escapeHtml(countdownDateFormatter.format(target)) + '</div>' +
+      '<button type="button" class="countdown-change-link" id="countdownChangeBtn">change</button>';
+
+    var changeBtn = document.getElementById('countdownChangeBtn');
+    if (changeBtn) {
+      changeBtn.addEventListener('click', function () { renderCountdownForm(data); });
     }
   }
 
-  renderNamedays();
+  function renderCountdownForm(prefill) {
+    if (!countdownWidget) return;
+    var labelValue = prefill && prefill.label ? prefill.label : '';
+    var dateValue = prefill && prefill.date ? prefill.date : '';
+    countdownWidget.innerHTML =
+      '<form class="countdown-form" id="countdownForm" autocomplete="off">' +
+        '<span class="name-prompt">Count down to…</span>' +
+        '<input type="text" class="name-input" id="countdownLabelInput" placeholder="Event name (optional)" maxlength="40" value="' + escapeHtml(labelValue) + '">' +
+        '<input type="date" class="name-input" id="countdownDateInput" required value="' + escapeHtml(dateValue) + '">' +
+        '<button type="submit" class="name-submit">Set</button>' +
+      '</form>';
+
+    var form = document.getElementById('countdownForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var dateInput = document.getElementById('countdownDateInput');
+        var labelInput = document.getElementById('countdownLabelInput');
+        if (!dateInput.value) return;
+        var data = { label: labelInput.value.trim(), date: dateInput.value };
+        safeStorageSet(COUNTDOWN_KEY, JSON.stringify(data));
+        renderCountdownDisplay(data);
+      });
+    }
+  }
+
+  (function initCountdown() {
+    var saved = null;
+    try { saved = JSON.parse(safeStorageGet(COUNTDOWN_KEY) || 'null'); } catch (e) { saved = null; }
+    if (saved && saved.date) {
+      renderCountdownDisplay(saved);
+    } else {
+      renderCountdownForm(null);
+    }
+  })();
 
   /* ---------- weather ---------- */
 
@@ -292,6 +532,7 @@
     var wind = Math.round(current.wind_speed_10m);
     var maxDays = daily && daily.time ? daily.time.length : 0;
     var visibleDays = forecastExpanded ? maxDays : Math.min(5, maxDays);
+    var stripClass = 'forecast-strip' + (visibleDays > 5 ? ' is-scroll' : '');
 
     weatherBody.innerHTML =
       '<div class="weather-icon">' + getWeatherIconSvg(category) + '</div>' +
@@ -299,7 +540,7 @@
       '<div class="weather-desc">' + escapeHtml(info.desc) + '</div>' +
       '<div class="weather-location">' + escapeHtml(locationName) + '</div>' +
       '<div class="weather-meta">Feels like ' + feelsLike + '° · ' + humidity + '% humidity · ' + wind + ' km/h wind</div>' +
-      (daily && maxDays ? '<div class="forecast-strip" id="forecastStrip">' + buildForecastHtml(daily, visibleDays) + '</div>' : '') +
+      (daily && maxDays ? '<div class="' + stripClass + '" id="forecastStrip">' + buildForecastHtml(daily, visibleDays) + '</div>' : '') +
       (daily && maxDays > 5 ? '<button type="button" class="weather-more-btn" id="forecastToggleBtn">' + (forecastExpanded ? 'Show 5-day forecast' : 'Show ' + maxDays + '-day forecast') + '</button>' : '') +
       '<button type="button" class="weather-change-link" id="weatherChangeBtn">change location</button>';
 
@@ -450,7 +691,7 @@
     requestAnimationFrame(animateBlobs);
   }
 
-  /* ---------- network canvas ---------- */
+  /* ---------- network canvas (particles + drifting asteroids) ---------- */
 
   var canvas = document.getElementById('network-canvas');
   var ctx = canvas.getContext('2d');
@@ -459,6 +700,7 @@
   var width = 0;
   var height = 0;
   var particles = [];
+  var asteroids = [];
   var mouse = { x: -9999, y: -9999, active: false };
 
   var LINK_DIST = 150;
@@ -466,10 +708,27 @@
   var DOT_COLOR = '111, 194, 255';
   var LINE_COLOR = '111, 194, 255';
   var MOUSE_LINE_COLOR = '255, 122, 51';
+  var ASTEROID_COLOR = '201, 194, 182';
 
   function particleCount() {
     var area = width * height;
     return Math.max(30, Math.min(110, Math.round(area / 18000)));
+  }
+
+  function asteroidCount() {
+    var area = width * height;
+    return Math.max(5, Math.min(14, Math.round(area / 140000)));
+  }
+
+  function makeAsteroidPoints(radius) {
+    var n = 6 + Math.floor(Math.random() * 4);
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var angle = (i / n) * Math.PI * 2;
+      var r = radius * (0.65 + Math.random() * 0.55);
+      pts.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+    }
+    return pts;
   }
 
   function resize() {
@@ -492,6 +751,24 @@
         r: 1.4 + Math.random() * 1.4
       });
     }
+
+    var aCount = asteroidCount();
+    asteroids = [];
+    for (var j = 0; j < aCount; j++) {
+      var radius = 7 + Math.random() * 14;
+      var angle = Math.random() * Math.PI * 2;
+      var speed = 0.15 + Math.random() * 0.35;
+      asteroids.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: radius,
+        points: makeAsteroidPoints(radius),
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.01
+      });
+    }
   }
 
   function onMouseMove(e) {
@@ -510,7 +787,39 @@
   window.addEventListener('mouseleave', onMouseLeave, { passive: true });
   window.addEventListener('resize', resize);
 
+  function stepAsteroids() {
+    for (var i = 0; i < asteroids.length; i++) {
+      var a = asteroids[i];
+      a.x += a.vx;
+      a.y += a.vy;
+      a.rotation += a.rotationSpeed;
+      if (a.x - a.radius < 0) { a.x = a.radius; a.vx = -a.vx; }
+      else if (a.x + a.radius > width) { a.x = width - a.radius; a.vx = -a.vx; }
+      if (a.y - a.radius < 0) { a.y = a.radius; a.vy = -a.vy; }
+      else if (a.y + a.radius > height) { a.y = height - a.radius; a.vy = -a.vy; }
+    }
+  }
+
+  function drawAsteroids() {
+    for (var i = 0; i < asteroids.length; i++) {
+      var a = asteroids[i];
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.rotation);
+      ctx.beginPath();
+      ctx.moveTo(a.points[0].x, a.points[0].y);
+      for (var j = 1; j < a.points.length; j++) ctx.lineTo(a.points[j].x, a.points[j].y);
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(' + ASTEROID_COLOR + ', 0.32)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function step() {
+    stepAsteroids();
+
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
@@ -546,6 +855,8 @@
 
   function draw() {
     ctx.clearRect(0, 0, width, height);
+
+    drawAsteroids();
 
     for (var i = 0; i < particles.length; i++) {
       for (var j = i + 1; j < particles.length; j++) {
