@@ -86,10 +86,10 @@ body {
   padding: clamp(0.85rem, 2vw, 1.75rem);
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 1fr);
-  grid-template-rows: 1fr 1fr auto auto;
+  grid-template-rows: 0.55fr 1.15fr auto auto;
   grid-template-areas:
     "greeting clock weather"
-    "greeting clock weather"
+    "fact clock weather"
     "fact nameday weather"
     "tools tools tools";
   gap: clamp(0.65rem, 1.4vw, 1.1rem);
@@ -108,7 +108,7 @@ body {
 .greeting-widget { grid-area: greeting; align-items: center; justify-content: center; text-align: center; }
 .clock-widget { grid-area: clock; align-items: center; justify-content: center; text-align: center; }
 .weather-widget { grid-area: weather; align-items: center; text-align: center; }
-.fact-widget { grid-area: fact; justify-content: center; text-align: center; }
+.fact-widget { grid-area: fact; justify-content: flex-start; text-align: center; }
 .nameday-widget { grid-area: nameday; justify-content: center; }
 .tools-dock { grid-area: tools; flex-direction: row; align-items: center; justify-content: space-evenly; }
 
@@ -260,15 +260,15 @@ body {
 /* ---------- science fact ---------- */
 
 .fact-text {
-  margin: 0;
-  font-size: clamp(0.72rem, 1.15vw, 0.92rem);
-  line-height: 1.5;
+  margin: 0.4rem 0 0;
+  font-size: clamp(0.78rem, 1.3vw, 1rem);
+  line-height: 1.6;
   color: var(--nk-cream-strong);
-  max-width: 46ch;
+  max-width: 42ch;
   margin-inline: auto;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
 }
 
@@ -287,7 +287,7 @@ body {
 }
 
 .fact-refresh {
-  margin: 0.65rem auto 0;
+  margin: 0.85rem auto 0;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -404,6 +404,66 @@ body {
   color: var(--nk-cream);
   margin-top: 0.35rem;
   line-height: 1.4;
+}
+
+.forecast-strip {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  width: 100%;
+  padding: 0.5rem 0.15rem 0.3rem;
+  margin-top: 0.7rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  scrollbar-width: thin;
+}
+
+.forecast-day {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 38px;
+}
+
+.forecast-day-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--nk-cream);
+}
+
+.forecast-day-icon { width: 20px; height: 20px; color: var(--nk-c1); }
+.forecast-day-icon svg { width: 100%; height: 100%; }
+
+.forecast-day-temps {
+  font-size: 0.65rem;
+  display: flex;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.forecast-day-temps .hi { color: var(--nk-c4); font-weight: 600; }
+.forecast-day-temps .lo { color: var(--nk-cream); }
+
+.weather-more-btn {
+  margin-top: 0.55rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--nk-c1);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.weather-more-btn:hover,
+.weather-more-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(111, 194, 255, 0.4);
 }
 
 .weather-change-link {

@@ -207,6 +207,9 @@
   var weatherBody = document.getElementById('weatherBody');
   var lastWeatherCoords = null;
   var weatherRefreshTimer = null;
+  var lastDailyForecast = null;
+  var forecastExpanded = false;
+  var forecastDayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 
   var WEATHER_CODES = {
     0: { desc: 'Clear sky', cat: 'clear' },
@@ -258,14 +261,37 @@
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
   }
 
-  function renderWeather(current, locationName) {
+  function buildForecastHtml(daily, days) {
+    var n = Math.min(days, daily.time.length);
+    var html = '';
+    for (var i = 0; i < n; i++) {
+      var d = new Date(daily.time[i] + 'T00:00:00');
+      var label = i === 0 ? 'Today' : forecastDayFormatter.format(d);
+      var info = WEATHER_CODES[daily.weather_code[i]] || { desc: 'Unknown', cat: 'cloudy' };
+      var category = info.cat === 'clear' ? 'clear-day' : info.cat;
+      var hi = Math.round(daily.temperature_2m_max[i]);
+      var lo = Math.round(daily.temperature_2m_min[i]);
+      html +=
+        '<div class="forecast-day">' +
+          '<div class="forecast-day-label">' + escapeHtml(label) + '</div>' +
+          '<div class="forecast-day-icon">' + getWeatherIconSvg(category) + '</div>' +
+          '<div class="forecast-day-temps"><span class="hi">' + hi + '°</span><span class="lo">' + lo + '°</span></div>' +
+        '</div>';
+    }
+    return html;
+  }
+
+  function renderWeather(current, daily, locationName) {
     if (!weatherBody) return;
+    lastDailyForecast = daily;
     var info = WEATHER_CODES[current.weather_code] || { desc: 'Unknown', cat: 'cloudy' };
     var category = info.cat === 'clear' ? (current.is_day ? 'clear-day' : 'clear-night') : info.cat;
     var temp = Math.round(current.temperature_2m);
     var feelsLike = Math.round(current.apparent_temperature);
     var humidity = Math.round(current.relative_humidity_2m);
     var wind = Math.round(current.wind_speed_10m);
+    var maxDays = daily && daily.time ? daily.time.length : 0;
+    var visibleDays = forecastExpanded ? maxDays : Math.min(5, maxDays);
 
     weatherBody.innerHTML =
       '<div class="weather-icon">' + getWeatherIconSvg(category) + '</div>' +
@@ -273,10 +299,20 @@
       '<div class="weather-desc">' + escapeHtml(info.desc) + '</div>' +
       '<div class="weather-location">' + escapeHtml(locationName) + '</div>' +
       '<div class="weather-meta">Feels like ' + feelsLike + '° · ' + humidity + '% humidity · ' + wind + ' km/h wind</div>' +
+      (daily && maxDays ? '<div class="forecast-strip" id="forecastStrip">' + buildForecastHtml(daily, visibleDays) + '</div>' : '') +
+      (daily && maxDays > 5 ? '<button type="button" class="weather-more-btn" id="forecastToggleBtn">' + (forecastExpanded ? 'Show 5-day forecast' : 'Show ' + maxDays + '-day forecast') + '</button>' : '') +
       '<button type="button" class="weather-change-link" id="weatherChangeBtn">change location</button>';
 
     var changeBtn = document.getElementById('weatherChangeBtn');
     if (changeBtn) changeBtn.addEventListener('click', function () { showLocationForm(); });
+
+    var toggleBtn = document.getElementById('forecastToggleBtn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        forecastExpanded = !forecastExpanded;
+        renderWeather(current, daily, locationName);
+      });
+    }
   }
 
   function loadWeather(lat, lon, name) {
@@ -284,11 +320,15 @@
     setWeatherStatus('Loading weather…');
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(lat) +
       '&longitude=' + encodeURIComponent(lon) +
-      '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day&timezone=auto';
+      '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=16&timezone=auto';
 
     fetch(url)
       .then(function (r) { if (!r.ok) throw new Error('weather request failed'); return r.json(); })
-      .then(function (data) { renderWeather(data.current, name); })
+      .then(function (data) {
+        forecastExpanded = false;
+        renderWeather(data.current, data.daily, name);
+      })
       .catch(function () { setWeatherStatus('Weather unavailable right now.'); });
 
     if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
