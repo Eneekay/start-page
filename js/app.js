@@ -387,75 +387,6 @@
 
   renderBankHoliday();
 
-  /* ---------- local events (RSS) ---------- */
-
-  (function () {
-    var eventsBody = document.getElementById('eventsBody');
-    if (!eventsBody) return;
-
-    var FEED_URL = 'https://gohertford.co.uk/events/feed/RSS2.0/';
-    var PROXY_URL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(FEED_URL);
-    var MAX_ITEMS = 3;
-
-    function stripHtml(html) {
-      var doc = new DOMParser().parseFromString(html || '', 'text/html');
-      return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
-    }
-
-    function setStatus(message) {
-      eventsBody.innerHTML = '<div class="widget-status">' + escapeHtml(message) + '</div>';
-    }
-
-    fetch(PROXY_URL)
-      .then(function (r) { if (!r.ok) throw new Error('feed request failed'); return r.text(); })
-      .then(function (xmlText) {
-        var doc = new DOMParser().parseFromString(xmlText, 'text/xml');
-        if (doc.querySelector('parsererror')) throw new Error('feed parse failed');
-
-        var items = Array.prototype.slice.call(doc.querySelectorAll('item'));
-        if (!items.length) throw new Error('no items in feed');
-
-        var today = startOfDay(new Date());
-        var parsed = items.map(function (item) {
-          var titleEl = item.querySelector('title');
-          var linkEl = item.querySelector('link');
-          var dateEl = item.querySelector('pubDate');
-          var rawDate = dateEl ? dateEl.textContent : '';
-          var parsedDate = rawDate ? new Date(rawDate) : null;
-          var validDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null;
-          return {
-            title: stripHtml(titleEl ? titleEl.textContent : 'Untitled event'),
-            link: linkEl ? linkEl.textContent.trim() : FEED_URL,
-            date: validDate
-          };
-        });
-
-        var upcoming = parsed.filter(function (e) { return !e.date || e.date >= today; });
-        var list = (upcoming.length ? upcoming : parsed).slice();
-        list.sort(function (a, b) {
-          if (!a.date) return 1;
-          if (!b.date) return -1;
-          return a.date - b.date;
-        });
-        list = list.slice(0, MAX_ITEMS);
-
-        var dateFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-        var html = '<ul class="events-list">' + list.map(function (e) {
-          var dateLabel = e.date ? dateFormatter.format(e.date) : '';
-          return '<li class="events-item"><a href="' + escapeHtml(e.link) + '" target="_blank" rel="noopener">' +
-            (dateLabel ? '<span class="events-date">' + escapeHtml(dateLabel) + '</span>' : '') +
-            '<span class="events-title">' + escapeHtml(e.title) + '</span>' +
-          '</a></li>';
-        }).join('') + '</ul>' +
-        '<a class="events-source-link" href="' + escapeHtml(FEED_URL.replace('/feed/RSS2.0/', '/')) + '" target="_blank" rel="noopener">more events →</a>';
-
-        eventsBody.innerHTML = html;
-      })
-      .catch(function () {
-        setStatus('Unable to load events right now.');
-      });
-  })();
-
   /* ---------- custom countdown ---------- */
 
   var COUNTDOWN_KEY = 'startpage_countdown';
@@ -558,6 +489,10 @@
       return a;
     }
 
+    function goalLine(text) {
+      return '<p class="puzzle-goal">' + escapeHtml(text) + '</p>';
+    }
+
     /* ---- Memory Match ---- */
     function initMemoryPuzzle() {
       var MEMORY_ICONS = {
@@ -589,6 +524,7 @@
 
         puzzleWidget.innerHTML =
           '<span class="widget-eyebrow">Puzzle — Memory Match</span>' +
+          goalLine('Find all the matching pairs.') +
           '<div class="memory-grid">' + cardsHtml + '</div>' +
           '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
             (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
@@ -665,6 +601,7 @@
 
         puzzleWidget.innerHTML =
           '<span class="widget-eyebrow">Puzzle — Slide to Solve</span>' +
+          goalLine('Slide tiles into the empty space to put them in order, 1 to 8.') +
           '<div class="slide-grid">' + tilesHtml + '</div>' +
           '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
             (solved ? '🎉 Solved in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
@@ -728,6 +665,7 @@
 
         puzzleWidget.innerHTML =
           '<span class="widget-eyebrow">Puzzle — Word Scramble</span>' +
+          goalLine('Unscramble the letters to spell the hidden word.') +
           '<div class="scramble-tiles">' + tilesHtml + '</div>' +
           (solved
             ? '<div class="puzzle-count puzzle-count--solved">🎉 It was ' + escapeHtml(word) + '!</div>'
@@ -797,6 +735,7 @@
 
         puzzleWidget.innerHTML =
           '<span class="widget-eyebrow">Puzzle — Lights Out</span>' +
+          goalLine('Click cells to turn every light off.') +
           '<div class="lightsout-grid">' + cellsHtml + '</div>' +
           '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' +
             (solved ? '🎉 All out in ' + moves + (moves === 1 ? ' move!' : ' moves!') : moves + (moves === 1 ? ' move' : ' moves')) +
@@ -824,119 +763,291 @@
       render();
     }
 
-    /* ---- Tic-Tac-Toe vs. computer ---- */
-    function initTicTacToePuzzle() {
-      var board = [];
-      var over = false;
-      var statusMessage = 'Your turn (X)';
-
-      var LINES = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6]
+    /* ---- Hangman ---- */
+    function initHangmanPuzzle() {
+      var WORDS = [
+        'PUZZLE', 'GARDEN', 'WINDOW', 'PLANET', 'GUITAR', 'PENCIL', 'BRIDGE', 'CANDLE',
+        'DRAGON', 'ISLAND', 'JACKET', 'KETTLE', 'LANTERN', 'MARBLE', 'ORANGE', 'PILLOW',
+        'RIBBON', 'SILVER', 'TUNNEL', 'VELVET', 'WHISTLE', 'YELLOW', 'ANCHOR', 'BASKET',
+        'CIRCUS', 'DOLPHIN', 'FOUNTAIN', 'GALAXY', 'HARBOR', 'IGLOO', 'JIGSAW', 'KINGDOM',
+        'LIBRARY', 'MEADOW', 'COMPASS', 'HORIZON', 'MYSTERY', 'PATTERN'
       ];
+      var MAX_MISSES = 6;
+      var word = '', guessed = {}, misses = 0, over = false, won = false;
 
-      function winnerOf(b) {
-        for (var i = 0; i < LINES.length; i++) {
-          var l = LINES[i];
-          if (b[l[0]] && b[l[0]] === b[l[1]] && b[l[1]] === b[l[2]]) return b[l[0]];
-        }
-        return null;
-      }
-      function isFull(b) { return b.every(function (v) { return v; }); }
-
-      function minimax(b, isMax) {
-        var winner = winnerOf(b);
-        if (winner === 'O') return 1;
-        if (winner === 'X') return -1;
-        if (isFull(b)) return 0;
-        var best = isMax ? -Infinity : Infinity;
-        for (var i = 0; i < 9; i++) {
-          if (b[i]) continue;
-          b[i] = isMax ? 'O' : 'X';
-          var score = minimax(b, !isMax);
-          b[i] = null;
-          best = isMax ? Math.max(best, score) : Math.min(best, score);
-        }
-        return best;
-      }
-      function computerMove(b) {
-        var bestScore = -Infinity, move = -1;
-        for (var i = 0; i < 9; i++) {
-          if (b[i]) continue;
-          b[i] = 'O';
-          var score = minimax(b, false);
-          b[i] = null;
-          if (score > bestScore) { bestScore = score; move = i; }
-        }
-        return move;
-      }
-
-      function markSvg(mark) {
-        if (mark === 'X') {
-          return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>';
-        }
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"></circle></svg>';
-      }
-
-      function newGame() {
-        board = new Array(9).fill(null);
+      function newWord() {
+        word = WORDS[Math.floor(Math.random() * WORDS.length)];
+        guessed = {};
+        misses = 0;
         over = false;
-        statusMessage = 'Your turn (X)';
+        won = false;
       }
 
       function render() {
-        var cellsHtml = board.map(function (mark, i) {
-          return '<button type="button" class="tictactoe-cell" data-idx="' + i + '"' + (mark || over ? ' disabled' : '') + '>' +
-            (mark ? markSvg(mark) : '') +
-          '</button>';
+        var maskedHtml = word.split('').map(function (ch) {
+          return '<span class="hangman-letter">' + (guessed[ch] || over ? ch : '') + '</span>';
         }).join('');
 
+        var keyboardHtml = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(function (letter) {
+          var isGuessed = !!guessed[letter];
+          var isWrong = isGuessed && word.indexOf(letter) === -1;
+          var isRight = isGuessed && word.indexOf(letter) !== -1;
+          var classes = 'hangman-key' + (isWrong ? ' is-wrong' : '') + (isRight ? ' is-right' : '');
+          return '<button type="button" class="' + classes + '" data-letter="' + letter + '"' + (isGuessed || over ? ' disabled' : '') + '>' + letter + '</button>';
+        }).join('');
+
+        var status = won ? '🎉 You got it!' : over ? 'Out of tries — it was ' + word : (MAX_MISSES - misses) + (MAX_MISSES - misses === 1 ? ' try left' : ' tries left');
+
         puzzleWidget.innerHTML =
-          '<span class="widget-eyebrow">Puzzle — Tic-Tac-Toe</span>' +
-          '<div class="tictactoe-grid">' + cellsHtml + '</div>' +
-          '<div class="puzzle-count' + (over ? ' puzzle-count--solved' : '') + '">' + escapeHtml(statusMessage) + '</div>' +
-          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new game</button>';
+          '<span class="widget-eyebrow">Puzzle — Hangman</span>' +
+          goalLine('Guess the letters before you run out of tries.') +
+          '<div class="hangman-word">' + maskedHtml + '</div>' +
+          '<div class="hangman-keyboard">' + keyboardHtml + '</div>' +
+          '<div class="puzzle-count' + (won ? ' puzzle-count--solved' : '') + '">' + escapeHtml(status) + '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new word</button>';
 
         if (!over) {
-          puzzleWidget.querySelectorAll('.tictactoe-cell').forEach(function (btn) {
+          puzzleWidget.querySelectorAll('.hangman-key').forEach(function (btn) {
             btn.addEventListener('click', function () {
-              var idx = parseInt(btn.getAttribute('data-idx'), 10);
-              if (board[idx] || over) return;
-              board[idx] = 'X';
-
-              var winner = winnerOf(board);
-              if (winner || isFull(board)) {
-                over = true;
-                statusMessage = winner === 'X' ? '🎉 You win!' : winner === 'O' ? 'Computer wins!' : "It's a draw!";
-                render();
-                return;
-              }
-
-              var move = computerMove(board);
-              if (move !== -1) board[move] = 'O';
-              winner = winnerOf(board);
-              if (winner || isFull(board)) {
-                over = true;
-                statusMessage = winner === 'X' ? '🎉 You win!' : winner === 'O' ? 'Computer wins!' : "It's a draw!";
-              } else {
-                statusMessage = 'Your turn (X)';
+              var letter = btn.getAttribute('data-letter');
+              if (guessed[letter] || over) return;
+              guessed[letter] = true;
+              if (word.indexOf(letter) === -1) {
+                misses++;
+                if (misses >= MAX_MISSES) over = true;
+              } else if (word.split('').every(function (ch) { return guessed[ch]; })) {
+                over = true; won = true;
               }
               render();
             });
           });
         }
         var resetBtn = document.getElementById('puzzleResetBtn');
-        if (resetBtn) {
-          resetBtn.addEventListener('click', function () { newGame(); render(); });
-        }
+        if (resetBtn) resetBtn.addEventListener('click', function () { newWord(); render(); });
       }
 
-      newGame();
+      newWord();
       render();
     }
 
-    var PUZZLES = [initMemoryPuzzle, initSlidePuzzle, initScramblePuzzle, initLightsOutPuzzle, initTicTacToePuzzle];
+    /* ---- Mini Sudoku (4x4) ---- */
+    function initSudokuPuzzle() {
+      var BASE = [1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1];
+      var GIVEN_MASK = [0, 2, 5, 7, 8, 10, 13, 15];
+      var PERMS = [
+        [1, 2, 3, 4], [2, 1, 4, 3], [3, 4, 1, 2], [4, 3, 2, 1], [2, 3, 4, 1]
+      ];
+
+      var solutionSeed = [];
+      var grid = [];
+      var given = [];
+
+      function newPuzzle() {
+        var perm = PERMS[Math.floor(Math.random() * PERMS.length)];
+        solutionSeed = BASE.map(function (v) { return perm[v - 1]; });
+        grid = solutionSeed.map(function (v, i) { return GIVEN_MASK.indexOf(i) !== -1 ? v : 0; });
+        given = GIVEN_MASK.slice();
+      }
+
+      function isSolved() {
+        if (grid.indexOf(0) !== -1) return false;
+        function group(indices) {
+          var seen = {};
+          for (var i = 0; i < indices.length; i++) {
+            var v = grid[indices[i]];
+            if (seen[v]) return false;
+            seen[v] = true;
+          }
+          return true;
+        }
+        for (var r = 0; r < 4; r++) { if (!group([r * 4, r * 4 + 1, r * 4 + 2, r * 4 + 3])) return false; }
+        for (var c = 0; c < 4; c++) { if (!group([c, c + 4, c + 8, c + 12])) return false; }
+        var boxes = [[0, 1, 4, 5], [2, 3, 6, 7], [8, 9, 12, 13], [10, 11, 14, 15]];
+        for (var b = 0; b < boxes.length; b++) { if (!group(boxes[b])) return false; }
+        return true;
+      }
+
+      function render() {
+        var solved = isSolved();
+        var cellsHtml = grid.map(function (v, i) {
+          var isGiven = given.indexOf(i) !== -1;
+          var classes = 'sudoku-cell' + (isGiven ? ' is-given' : '');
+          return '<button type="button" class="' + classes + '" data-idx="' + i + '"' + (isGiven ? ' disabled' : '') + '>' + (v || '') + '</button>';
+        }).join('');
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Mini Sudoku</span>' +
+          goalLine('Fill the grid so every row, column, and 2×2 box has 1–4.') +
+          '<div class="sudoku-grid">' + cellsHtml + '</div>' +
+          '<div class="puzzle-count' + (solved ? ' puzzle-count--solved' : '') + '">' + (solved ? '🎉 Solved!' : 'Tap a cell to cycle 1–4') + '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new puzzle</button>';
+
+        if (!solved) {
+          puzzleWidget.querySelectorAll('.sudoku-cell:not(.is-given)').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              grid[idx] = (grid[idx] % 4) + 1;
+              render();
+            });
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) resetBtn.addEventListener('click', function () { newPuzzle(); render(); });
+      }
+
+      newPuzzle();
+      render();
+    }
+
+    /* ---- Odd One Out ---- */
+    function initOddOneOutPuzzle() {
+      var SHAPES = {
+        star: '<polygon points="12 2 14.9 8.6 22 9.3 16.5 14 18.2 21 12 17.3 5.8 21 7.5 14 2 9.3 9.1 8.6"></polygon>',
+        heart: '<path d="M12 21s-7-4.35-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.65-9.5 9-9.5 9z"></path>',
+        moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
+        sun: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"></path>',
+        bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+        diamond: '<polygon points="12 2 22 12 12 22 2 12"></polygon>'
+      };
+      var SHAPE_KEYS = Object.keys(SHAPES);
+      var GRID_SIZE = 9;
+      var common = '', odd = '', oddIndex = 0, found = false, tries = 0;
+
+      function shapeSvg(key) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + SHAPES[key] + '</svg>';
+      }
+
+      function newRound() {
+        var picks = fisherShuffle(SHAPE_KEYS);
+        common = picks[0];
+        odd = picks[1];
+        oddIndex = Math.floor(Math.random() * GRID_SIZE);
+        found = false;
+        tries = 0;
+      }
+
+      function render(message) {
+        var cellsHtml = '';
+        for (var i = 0; i < GRID_SIZE; i++) {
+          var isOdd = i === oddIndex;
+          var classes = 'oddoneout-cell' + (isOdd && found ? ' is-found' : '');
+          cellsHtml += '<button type="button" class="' + classes + '" data-idx="' + i + '">' + shapeSvg(isOdd ? odd : common) + '</button>';
+        }
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Odd One Out</span>' +
+          goalLine('Find the one icon that\'s different from the rest.') +
+          '<div class="oddoneout-grid">' + cellsHtml + '</div>' +
+          '<div class="puzzle-count' + (found ? ' puzzle-count--solved' : '') + '">' +
+            (found ? '🎉 Found it in ' + tries + (tries === 1 ? ' try!' : ' tries!') : (message || (tries ? tries + (tries === 1 ? ' try so far' : ' tries so far') : ''))) +
+          '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">new round</button>';
+
+        if (!found) {
+          puzzleWidget.querySelectorAll('.oddoneout-cell').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              tries++;
+              if (idx === oddIndex) { found = true; render(); }
+              else { render('Not that one — keep looking'); }
+            });
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) resetBtn.addEventListener('click', function () { newRound(); render(); });
+      }
+
+      newRound();
+      render();
+    }
+
+    /* ---- Simon Says (pattern memory) ---- */
+    function initSimonPuzzle() {
+      var PAD_COUNT = 4;
+      var sequence = [], playerStep = 0, isPlaying = false, gameOver = false, best = 0;
+
+      function render() {
+        var padsHtml = '';
+        for (var i = 0; i < PAD_COUNT; i++) {
+          padsHtml += '<button type="button" class="simon-pad simon-pad--' + i + '" data-idx="' + i + '"' + (isPlaying || gameOver ? ' disabled' : '') + '></button>';
+        }
+
+        var status = gameOver
+          ? 'Game over — reached round ' + sequence.length
+          : isPlaying
+            ? 'Watch closely…'
+            : sequence.length === 0
+              ? 'Press start to begin'
+              : 'Your turn — round ' + sequence.length;
+
+        puzzleWidget.innerHTML =
+          '<span class="widget-eyebrow">Puzzle — Simon Says</span>' +
+          goalLine('Watch the pattern, then repeat it back in order.') +
+          '<div class="simon-grid">' + padsHtml + '</div>' +
+          '<div class="puzzle-count' + (gameOver ? ' puzzle-count--solved' : '') + '">' + escapeHtml(status) +
+            (best > 0 ? ' <span class="simon-best">(best: ' + best + ')</span>' : '') +
+          '</div>' +
+          '<button type="button" class="countdown-change-link" id="puzzleResetBtn">' + (sequence.length === 0 && !gameOver ? 'start' : 'play again') + '</button>';
+
+        if (!isPlaying && !gameOver) {
+          puzzleWidget.querySelectorAll('.simon-pad').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.getAttribute('data-idx'), 10);
+              btn.classList.add('is-lit');
+              setTimeout(function () { btn.classList.remove('is-lit'); }, 200);
+
+              if (idx === sequence[playerStep]) {
+                playerStep++;
+                if (playerStep === sequence.length) {
+                  setTimeout(nextRound, 500);
+                }
+              } else {
+                gameOver = true;
+                best = Math.max(best, sequence.length - 1);
+                setTimeout(render, 300);
+              }
+            });
+          });
+        }
+        var resetBtn = document.getElementById('puzzleResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () {
+            if (gameOver) { sequence = []; gameOver = false; }
+            nextRound();
+          });
+        }
+      }
+
+      function playSequence() {
+        isPlaying = true;
+        render();
+        var i = 0;
+        function step() {
+          if (i >= sequence.length) { isPlaying = false; render(); return; }
+          var pad = puzzleWidget.querySelector('.simon-pad[data-idx="' + sequence[i] + '"]');
+          if (pad) {
+            pad.classList.add('is-lit');
+            setTimeout(function () { pad.classList.remove('is-lit'); }, 350);
+          }
+          i++;
+          setTimeout(step, 550);
+        }
+        step();
+      }
+
+      function nextRound() {
+        sequence.push(Math.floor(Math.random() * PAD_COUNT));
+        playerStep = 0;
+        playSequence();
+      }
+
+      render();
+    }
+
+    var PUZZLES = [
+      initMemoryPuzzle, initSlidePuzzle, initScramblePuzzle, initLightsOutPuzzle,
+      initHangmanPuzzle, initSudokuPuzzle, initOddOneOutPuzzle, initSimonPuzzle
+    ];
     PUZZLES[Math.floor(Math.random() * PUZZLES.length)]();
   })();
 
