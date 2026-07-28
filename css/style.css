@@ -156,14 +156,25 @@ body {
 .countdown-widget { align-items: center; justify-content: center; text-align: center; }
 .tools-dock { flex-direction: row; align-items: center; justify-content: space-evenly; flex: 0 0 auto; }
 
-/* small-screen / short-viewport fallback: stack and allow scrolling */
-@media (max-width: 1100px), (max-height: 820px) {
+/* narrow / mobile-width viewports: stack into a single scrollable column */
+@media (max-width: 900px) {
   html, body { height: auto; overflow: auto; }
   .dashboard { height: auto; }
   .dash-columns { flex-direction: column; }
   .dash-col { flex-basis: auto; }
   .widget { width: 100%; }
   .tools-dock { flex-wrap: wrap; row-gap: 1.1rem; padding: 1.1rem; }
+}
+
+/* short-but-wide windows (laptop browser chrome eating vertical space):
+   keep the 3-column layout, just let the page scroll instead of
+   squeezing widgets down and clipping their content */
+@media (max-height: 700px) and (min-width: 901px) {
+  html, body { height: auto; overflow: auto; }
+  .dashboard { height: auto; min-height: 100vh; }
+  .dash-columns { flex: 0 0 auto; }
+  .widget { max-height: none; overflow: visible; }
+  .weather-widget, .puzzle-widget, .countdown-widget { flex: 0 0 auto; min-height: 0; }
 }
 
 /* ---------- widget eyebrow ---------- */
